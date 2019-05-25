@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, Button, Text, ScrollView, TextInput, View, Dimensions, Image, TouchableOpacity, AppRegistry, TouchableHighlight, Animated, Alert, NetInfo } from 'react-native';
+import { StyleSheet, Button, Text, ScrollView, TextInput, View, Dimensions, Image, TouchableOpacity, AppRegistry, TouchableHighlight, Animated, Alert, NetInfo, AsyncStorage } from 'react-native';
 import { Assets, Constants, Audio } from 'expo'
 import { StackNavigator } from 'react-navigation';
 import { Overlay } from 'react-native-maps';
@@ -33,12 +33,6 @@ function MiniOfflineSign() {
 }
 var isHidden = true;
 var toValue;
-var cityNames = ["Karaikal", "Nagapatinam", "Vedarnyam", "Poompuhar"];
-var cityLeftCount = 0;
-var cityRightCount = 2;
-var cityCenterCount = 1;
-var cityHiddenCount = 3;
-var cityDirection = [];
 
 const alert_feedback = () => {
     Alert.alert(
@@ -66,23 +60,34 @@ export default class forecast extends React.Component {
             windDir: 'NNE',
             textInfo: 'something something',
             date: '14th May, 2019',
-            cityNames: ["Karaikal", "Nagapatinam", "Vedarnyam", "Poompuhar"],
+            selected_site: [],
+            landing_sites: [],
+            number_sites: [],
+            site_all: [],
+            cityCenterCount: 0,
+            leftCityDistance:0,
+            rightCityDistance:0,
 
         };
     }
 
     async componentWillMount() {
+        console.log('Reached forecast');
         const { navigation } = this.props;
-        const selCity = navigation.getParam('cityOBJ', 'NO-VAL');
-        console.log(JSON.stringify(selCity));
-        this.setState.loading=true;
-        await this.apiCallForForecast(selCity);
+        this.state.loading = true;
+        //     navigate('forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
+        const selected_site_array = navigation.getParam('Selected_Site');
+        const landing_sites_array = navigation.getParam('Landing_Sites');
+        const number_fish_sites = landing_sites_array.length;
+        this.setState({ selected_site: selected_site_array, landing_sites: landing_sites_array, number_sites: number_fish_sites });
+        //   await this.apiCallForForecast();
     }
 
-    async apiCallForForecast(selCity) {
+    async apiCallForForecast(currentCity) {
+        console.log("Enquired city:" + currentCity);
         var data = {
             "state": "Gujarat",
-            "landing_centre": selCity,
+            "landing_centre": currentCity,
             "language": "Gujarati",
         };
         console.log("Request Body: " + JSON.stringify(data));
@@ -114,56 +119,33 @@ export default class forecast extends React.Component {
             "text": "નમસ્કાર વેરાવળ વિસ્તારના સાગરખેડુ મિત્રો માટે ઇન્કોઇસ અને રીલાયન્સ ફાઉન્ડેશન દ્વારા સમુદ્રની સ્થીતિ વિષેની માહીતી Lakhapat. આવતીકાલ 2019-03-14 ના રોજ 100 કિલોમીટર સુધી પવનની ઝડપ 5.0 થી 24.0 કીમી પ્રતિ કલાકે NNW દીશાની રહેશે . મહત્તમ પવનની ઝડપ સાંજના 5:30 કલાકે રહેશે સમુદ્રના મોજાની ઉંચાઇ 1.0 થી 3.0 ફૂટ અને દિશા NNE ની  રહેશે, મહત્તમ મોજા ની ઊંચાઈ રાત્રિના 11:30 કલાકે રહેશે. પાણીનો પ્રવાહ 1.0 થી 24.0 સેમી   દિશાનો રહેશે NNW. ઇન્કોઇસ દ્વારા આ માહિતીનો સ્ત્રોત મળેલ છે. વધુ માહિતી માટે રિલાયંસ ફાઉન્ડેશનના ટોલ ફ્રી નબર ૧૮૦૦ ૪૧૯ ૮૮૦૦ ઉપર સંપર્ક કરવા વિનતી સમુદ્રમાં પ્રવેશવાનું સલામત છે અને સમુદ્રની સ્થિતિ શાંત થઈ જશે"
 
         }
-        this.setState.loading=false;
         this.state.currentVal = stubresponse.data[0].engine_data.current.max_speed_kmph + "-" + stubresponse.data[0].engine_data.current.min_speed_kmph + " km/hr";
         this.state.currentDir = stubresponse.data[0].engine_data.current.direction_deg;
-        this.state.waveVal = stubresponse.data[0].engine_data.wave.max_height_ft + "-" + stubresponse.data[0].engine_data.wave.min_height_ft+ " ft";
+        this.state.waveVal = stubresponse.data[0].engine_data.wave.max_height_ft + "-" + stubresponse.data[0].engine_data.wave.min_height_ft + " ft";
         this.state.waveDir = stubresponse.data[0].engine_data.wave.direction_deg;
         this.state.windVal = stubresponse.data[0].engine_data.wind.max_speed_kmph + "-" + stubresponse.data[0].engine_data.wind.min_speed_kmph + " km/hr";
         this.state.windDir = stubresponse.data[0].engine_data.wind.direction_deg;
         this.state.textInfo = stubresponse.text;
         this.state.date = stubresponse.data[0].engine_data.date;
-
+        this.state.loading = false;
     }
 
-    componentDidMount() {
+    async  componentDidMount() {
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
-        const { navigation } = this.props;
-        const selCity = navigation.getParam('cityOBJ', 'NO-VAL');
-        switch (selCity) {
-            case 'Karaikal':
-                cityLeftCount = 3;
-                cityRightCount = 1;
-                cityCenterCount = 0;
-                cityHiddenCount = 2;
+        for (i = 0; i < this.state.number_sites; i++) {
+            if (this.state.selected_site[0].landing_centre == this.state.landing_sites[i].landing_centre) {
+                this.state.cityCenterCount = i;
                 break;
-            case 'Nagapatinam':
-                cityLeftCount = 0;
-                cityRightCount = 2;
-                cityCenterCount = 1;
-                cityHiddenCount = 3;
-                break;
-            case 'Vedarnyam':
-                cityLeftCount = 1;
-                cityRightCount = 3;
-                cityCenterCount = 2;
-                cityHiddenCount = 0;
-                break;
-            case 'Poompuhar':
-                cityLeftCount = 2;
-                cityRightCount = 0;
-                cityCenterCount = 3;
-                cityHiddenCount = 1;
-                break;
-            //No Default
+            }
         }
+        await this.apiCallForForecast(this.state.selected_site[0].landing_centre);
         this.setState({
-            cityLeft: cityNames[cityLeftCount],
-            cityRight: cityNames[cityRightCount],
-            cityCenter: cityNames[cityCenterCount],
-            hiddenCity: cityNames[cityHiddenCount],
+            cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites+1)) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites+1)) % this.state.number_sites].distance_km,
+            cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
         });
-
     }
     componentWillUnmount() {
         NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
@@ -298,8 +280,8 @@ export default class forecast extends React.Component {
                     Today's forecast
         </Text>
                 <Text>
-                   {this.state.date}
-        </Text>
+                    {this.state.date}
+                </Text>
             </View>
     }
 
@@ -311,43 +293,37 @@ export default class forecast extends React.Component {
         this.setState({ myText: 'You swiped down!' });
     }
 
-     async onSwipeLeft() {
-        cityLeftCount = (cityLeftCount + 1) % 4;
-        this.state.cityLeft = cityNames[cityLeftCount];
-        cityRightCount = (cityRightCount + 1) % 4;
-        this.state.cityRight = cityNames[cityRightCount];
-        cityCenterCount = (cityCenterCount + 1) % 4;
-        this.state.cityCenter = cityNames[cityCenterCount];
-        cityHiddedCount = (cityHiddenCount + 1) % 4;
-        this.state.cityHidden = cityNames[cityHiddenCount];
-        this.setState.loading=true;
-        await this.apiCallForForecast(this.state.cityCenter);
+    async onSwipeLeft() {
+        var currentCount = this.state.cityCenterCount;
+        currentCount= (currentCount+1)%7;
+        this.setState({
+            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].distance_km,
+            cityCenter: this.state.landing_sites[currentCount].landing_centre,
+        });
+        this.state.loading = true;
+        console.log("Loader state: "+ this.state.loading);
+        var centerCity = this.state.landing_sites[currentCount].landing_centre;
+        this.state.cityCenterCount=currentCount;
+        await this.apiCallForForecast(centerCity);
     }
 
     async onSwipeRight() {
-        cityLeftCount = (cityLeftCount + 3) % 4;
-        this.state.cityLeft = cityNames[cityLeftCount];
-        cityRightCount = (cityRightCount + 3) % 4;
-        this.state.cityRight = cityNames[cityRightCount];
-        cityCenterCount = (cityCenterCount + 3) % 4;
-        this.state.cityCenter = cityNames[cityCenterCount];
-        cityHiddedCount = (cityHiddenCount + 3) % 4;
-        this.state.cityHidden = cityNames[cityHiddenCount];
-        this.setState.loading=true;
-        await this.apiCallForForecast(this.state.cityCenter);
-    }
-
-    async moveToRight(){
-        cityLeftCount = (cityLeftCount + 1) % 4;
-        this.state.cityLeft = cityNames[cityLeftCount];
-        cityRightCount = (cityRightCount + 1) % 4;
-        this.state.cityRight = cityNames[cityRightCount];
-        cityCenterCount = (cityCenterCount + 1) % 4;
-        this.state.cityCenter = cityNames[cityCenterCount];
-        cityHiddedCount = (cityHiddenCount + 1) % 4;
-        this.state.cityHidden = cityNames[cityHiddenCount];
-        this.setState.loading=true;
-        await this.apiCallForForecast(this.state.cityCenter);
+        var currentCount = this.state.cityCenterCount;
+        currentCount= (currentCount+6)%7;
+        this.setState({
+            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].distance_km,
+            cityCenter: this.state.landing_sites[currentCount].landing_centre,
+        });
+        var centerCity = this.state.landing_sites[currentCount].landing_centre;
+        this.setState.loading = true;
+        this.state.cityCenterCount=currentCount;
+        await this.apiCallForForecast(centerCity);
     }
 
     onSwipe(gestureName, gestureState) {
@@ -361,10 +337,10 @@ export default class forecast extends React.Component {
                 console.log('Swiped');
                 break;
             case SWIPE_LEFT:
-                console.log('Swiped');
+                console.log('');
                 break;
             case SWIPE_RIGHT:
-                console.log('Swiped');
+                console.log('');
                 break;
         }
     }
@@ -436,14 +412,14 @@ export default class forecast extends React.Component {
     }
     leftCityFrame() {
         return (
-            <View style={styles.cityBoxLeft}>
+            <TouchableOpacity style={styles.cityBoxLeft} onPress={this.onSwipeRight}>
                 <Text style={styles.otherCityText}>
-                    {this.state.cityLeft}
+                    {this.state.cityLeft}  
                 </Text>
                 <Text style={styles.txtDirection} >
-                    44 Km north
+                    {this.state.leftCityDistance} Km
                 </Text>
-            </View>
+            </TouchableOpacity>
         );
     }
     LeftCityIcon() {
@@ -459,10 +435,10 @@ export default class forecast extends React.Component {
         return (
             <TouchableOpacity style={styles.cityBoxRight}>
                 <Text style={styles.otherCityText}>
-                    {this.state.cityRight}
+                    {this.state.cityRight}  
                 </Text>
                 <Text style={styles.txtDirection}>
-                    41 Km south
+                {this.state.rightCityDistance} Km
                             </Text>
             </TouchableOpacity>
         );
@@ -715,8 +691,9 @@ const styles = StyleSheet.create({
     },
     otherCityText: {
         color: '#000000',
-        fontWeight: 'bold',
-        fontSize: 12,
+        //fontWeight: 'bold',
+        fontSize: 16,
+        textAlign:'center',
         //justifyContent: 'center',
         //alignSelf:'flex-s'
     },
