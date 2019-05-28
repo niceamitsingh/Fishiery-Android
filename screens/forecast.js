@@ -8,6 +8,7 @@ import Loader from '../components/util/loader';
 import request from '../components/util/apirequest';
 import APIConfig from '../components/config/APIconfig';
 import GestureRecognizer, { swipeDirections } from 'react-native-swipe-gestures';
+import getObjectForKey  from '../components/util/title.localization';
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
 const OVERLY_LEN = .3 * DEVICE_HEIGHT;
@@ -15,6 +16,7 @@ const SUB_VIEW = .67 * DEVICE_HEIGHT;
 const source = {
     uri: 'https://s3.amazonaws.com/exp-us-standard/audio/playlist-example/Comfort_Fit_-_03_-_Sorry.mp3',
 };
+const acknowledgementText='Thanks for your feedback !';
 
 function MiniOfflineSign() {
     Alert.alert("Please check your internet connection !");
@@ -35,9 +37,7 @@ var isHidden = true;
 var toValue;
 
 const alert_feedback = () => {
-    Alert.alert(
-        'Thanks for your feedback!'
-    )
+    Alert.alert(acknowledgementText)
 }
 
 
@@ -65,16 +65,21 @@ export default class forecast extends React.Component {
             number_sites: [],
             site_all: [],
             cityCenterCount: 0,
-            leftCityDistance:0,
-            rightCityDistance:0,
-
+            leftCityDistance: 0,
+            rightCityDistance: 0,
+            forecastTag:'',
+            cautionTag:'',
+            playingTag:'',
+            currentTag:'',
+            waveTag:'',
+            windTag:'',
         };
     }
 
     async componentWillMount() {
         console.log('Reached forecast');
         const { navigation } = this.props;
-        this.state.loading = true;
+        //this.state.loading = true;
         //     navigate('forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
         const selected_site_array = navigation.getParam('Selected_Site');
         const landing_sites_array = navigation.getParam('Landing_Sites');
@@ -84,15 +89,16 @@ export default class forecast extends React.Component {
     }
 
     async apiCallForForecast(currentCity) {
+        //this.state.loading = true;
         console.log("Enquired city:" + currentCity);
         var data = {
-            "state": "Gujarat",
+            "state": "GUJARAT",
             "landing_centre": currentCity,
-            "language": "Gujarati",
+            "language": "Gujarati"
         };
         console.log("Request Body: " + JSON.stringify(data));
-        //var stubresponse = await request("http://10.160.64.65/osf/engine/get_osf/", data);
-        var stubresponse = {
+        response = await request("http://104.211.204.132/osf/engine/get_osf/", data);
+        /*var stubresponse = {
             "data": [{
                 "state": "GUJARAT",
                 "district": "Kachchh",
@@ -118,16 +124,18 @@ export default class forecast extends React.Component {
             }],
             "text": "નમસ્કાર વેરાવળ વિસ્તારના સાગરખેડુ મિત્રો માટે ઇન્કોઇસ અને રીલાયન્સ ફાઉન્ડેશન દ્વારા સમુદ્રની સ્થીતિ વિષેની માહીતી Lakhapat. આવતીકાલ 2019-03-14 ના રોજ 100 કિલોમીટર સુધી પવનની ઝડપ 5.0 થી 24.0 કીમી પ્રતિ કલાકે NNW દીશાની રહેશે . મહત્તમ પવનની ઝડપ સાંજના 5:30 કલાકે રહેશે સમુદ્રના મોજાની ઉંચાઇ 1.0 થી 3.0 ફૂટ અને દિશા NNE ની  રહેશે, મહત્તમ મોજા ની ઊંચાઈ રાત્રિના 11:30 કલાકે રહેશે. પાણીનો પ્રવાહ 1.0 થી 24.0 સેમી   દિશાનો રહેશે NNW. ઇન્કોઇસ દ્વારા આ માહિતીનો સ્ત્રોત મળેલ છે. વધુ માહિતી માટે રિલાયંસ ફાઉન્ડેશનના ટોલ ફ્રી નબર ૧૮૦૦ ૪૧૯ ૮૮૦૦ ઉપર સંપર્ક કરવા વિનતી સમુદ્રમાં પ્રવેશવાનું સલામત છે અને સમુદ્રની સ્થિતિ શાંત થઈ જશે"
 
-        }
-        this.state.currentVal = stubresponse.data[0].engine_data.current.max_speed_kmph + "-" + stubresponse.data[0].engine_data.current.min_speed_kmph + " km/hr";
-        this.state.currentDir = stubresponse.data[0].engine_data.current.direction_deg;
-        this.state.waveVal = stubresponse.data[0].engine_data.wave.max_height_ft + "-" + stubresponse.data[0].engine_data.wave.min_height_ft + " ft";
-        this.state.waveDir = stubresponse.data[0].engine_data.wave.direction_deg;
-        this.state.windVal = stubresponse.data[0].engine_data.wind.max_speed_kmph + "-" + stubresponse.data[0].engine_data.wind.min_speed_kmph + " km/hr";
-        this.state.windDir = stubresponse.data[0].engine_data.wind.direction_deg;
-        this.state.textInfo = stubresponse.text;
-        this.state.date = stubresponse.data[0].engine_data.date;
-        this.state.loading = false;
+        }*/
+        console.log("Data: " + JSON.stringify(response.data[0]));
+        this.state.currentVal = response.data[0].max_current_speed_kmph + "-" + response.data[0].min_current_speed_kmph + " km/hr";
+        this.state.currentDir = response.data[0].current_direction;
+        this.state.waveVal = response.data[0].max_wave_height_feet + "-" + response.data[0].min_wave_height_feet + " ft";
+        this.state.waveDir = response.data[0].wave_direction;
+        this.state.windVal = response.data[0].max_wind_speed_kmph + "-" + response.data[0].min_wind_speed_kmph + " km/hr";
+        this.state.windDir = response.data[0].wind_direction;
+        this.state.textInfo = response.text;
+        this.state.date = response.data[0].date;
+        this.setState({ loading: false });
+        console.log("Loading state: " + this.state.loading);
     }
 
     async  componentDidMount() {
@@ -139,12 +147,28 @@ export default class forecast extends React.Component {
             }
         }
         await this.apiCallForForecast(this.state.selected_site[0].landing_centre);
+        var labelForecast = await getObjectForKey('Forecast_OSF_Title');
+        var labelCaution = await getObjectForKey('Forecast_State_Caution');
+        var labelPlaying = await getObjectForKey('Forecast_Audio_playing');
+        var labelCurrent = await getObjectForKey('Forecast_Component_Current');
+        var labelWave = await getObjectForKey('Forecast_Component_Wave');
+        var labelWind = await getObjectForKey('Forecast_Component_Wind');
+        var labelHelpful = await getObjectForKey('Forecast_User_Review_Title');
+
         this.setState({
-            cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
-            leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
-            cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites+1)) % this.state.number_sites].landing_centre,
-            rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites+1)) % this.state.number_sites].distance_km,
+            cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].distance_km,
             cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
+
+            forecastTag:labelForecast,
+            cautionTag:labelCaution,
+            playingTag:labelPlaying,
+            currentTag:labelCurrent,
+            waveTag:labelWave,
+            windTag:labelWind,
+            reviewTag:labelHelpful,
         });
     }
     componentWillUnmount() {
@@ -209,7 +233,7 @@ export default class forecast extends React.Component {
             },
             this._updateScreenForSoundStatus,
         );
-        this.state.loading = false;
+        this.setState({ loading: false });
         this.sound = sound;
         this.setState({
             isPlaying: 'true'
@@ -260,7 +284,7 @@ export default class forecast extends React.Component {
     _playAndPause = () => {
         switch (this.state.playingStatus) {
             case 'nosound':
-                this.state.loading = true,
+            this.setState({ loading: true });
                     this._playRecording();
                 break;
             case 'donepause':
@@ -273,15 +297,12 @@ export default class forecast extends React.Component {
     toggle_forecast = () => {
         return this.state.isPlaying ? (
             <Text style={styles.textPlaying}>
-                Playing...
+                {this.state.playingTag}..
         </Text>) :
             <View>
                 <Text style={styles.textForcast}>
-                    Today's forecast
+                    {this.state.forecastTag}
         </Text>
-                <Text>
-                    {this.state.date}
-                </Text>
             </View>
     }
 
@@ -295,35 +316,37 @@ export default class forecast extends React.Component {
 
     async onSwipeLeft() {
         var currentCount = this.state.cityCenterCount;
-        currentCount= (currentCount+1)%7;
+        currentCount = (currentCount + 1) % 7;
         this.setState({
-            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
-            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
-            cityRight: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].landing_centre,
-            rightCityDistance: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].distance_km,
+            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(currentCount + 1) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(currentCount + 1) % this.state.number_sites].distance_km,
             cityCenter: this.state.landing_sites[currentCount].landing_centre,
         });
-        this.state.loading = true;
-        console.log("Loader state: "+ this.state.loading);
+        this.setState({ loading: true });
+        console.log("Loader state: " + this.state.loading);
         var centerCity = this.state.landing_sites[currentCount].landing_centre;
-        this.state.cityCenterCount=currentCount;
+        this.state.cityCenterCount = currentCount;
         await this.apiCallForForecast(centerCity);
+        this.setState({ loading: false });
     }
 
     async onSwipeRight() {
         var currentCount = this.state.cityCenterCount;
-        currentCount= (currentCount+6)%7;
+        currentCount = (currentCount + 6) % 7;
         this.setState({
-            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].landing_centre,
-            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites-1)) % this.state.number_sites].distance_km,
-            cityRight: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].landing_centre,
-            rightCityDistance: this.state.landing_sites[(currentCount+ 1) % this.state.number_sites].distance_km,
+            cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(currentCount + 1) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(currentCount + 1) % this.state.number_sites].distance_km,
             cityCenter: this.state.landing_sites[currentCount].landing_centre,
         });
         var centerCity = this.state.landing_sites[currentCount].landing_centre;
-        this.setState.loading = true;
-        this.state.cityCenterCount=currentCount;
+        this.setState({ loading: true });
+        this.state.cityCenterCount = currentCount;
         await this.apiCallForForecast(centerCity);
+        this.setState({ loading: false });
     }
 
     onSwipe(gestureName, gestureState) {
@@ -401,7 +424,7 @@ export default class forecast extends React.Component {
                 {this.leftCityFrame()}
                 {this.LeftCityIcon()}
                 <View style={styles.currentCityBox}>
-                    <Text style={styles.currentCityText}>
+                    <Text adjustsFontSizeToFit style={styles.currentCityText}>
                         {this.state.cityCenter}
                     </Text>
                 </View>
@@ -414,7 +437,7 @@ export default class forecast extends React.Component {
         return (
             <TouchableOpacity style={styles.cityBoxLeft} onPress={this.onSwipeRight}>
                 <Text style={styles.otherCityText}>
-                    {this.state.cityLeft}  
+                    {this.state.cityLeft}
                 </Text>
                 <Text style={styles.txtDirection} >
                     {this.state.leftCityDistance} Km
@@ -435,10 +458,10 @@ export default class forecast extends React.Component {
         return (
             <TouchableOpacity style={styles.cityBoxRight}>
                 <Text style={styles.otherCityText}>
-                    {this.state.cityRight}  
+                    {this.state.cityRight}
                 </Text>
                 <Text style={styles.txtDirection}>
-                {this.state.rightCityDistance} Km
+                    {this.state.rightCityDistance} Km
                             </Text>
             </TouchableOpacity>
         );
@@ -486,11 +509,21 @@ export default class forecast extends React.Component {
             <View style={styles.content}>
                 <View style={styles.flexEmpty}>
                 </View>
+                {this.currentDate()}
                 {this.warningStatus()}
                 {this.rowCurrent()}
                 {this.rowWave()}
                 {this.rowWind()}
                 {this.bottomtab()}
+            </View>
+        );
+    }
+    currentDate() {
+        return (
+            <View style={styles.CurrentDateStyle}>
+                <Text style={styles.dateText}>
+                    {this.state.date}
+                </Text>
             </View>
         );
     }
@@ -509,7 +542,7 @@ export default class forecast extends React.Component {
     textCaution() {
         return (
             <Text style={styles.textCondition}>
-                CAUTION
+                {this.state.cautionTag}
                             </Text>
         );
     }
@@ -517,7 +550,7 @@ export default class forecast extends React.Component {
         return (
             <View style={styles.infoBox}>
                 {this.imgCurrent()}
-                <Text style={[styles.symbolName, { color: '#0a4a81' }]}>Current</Text>
+                <Text style={[styles.symbolName, { color: '#0a4a81' }]}>{this.state.currentTag}</Text>
                 <Text style={styles.symbolValue}>{this.state.currentVal}</Text>
                 {this.dirCurrent()}
             </View>
@@ -539,7 +572,7 @@ export default class forecast extends React.Component {
         return (
             <View style={styles.infoBox} >
                 {this.imgWave()}
-                <Text style={[styles.symbolName, { color: '#0088fc' }]}>Wave</Text>
+                <Text style={[styles.symbolName, { color: '#0088fc' }]}>{this.state.waveTag}</Text>
                 <Text style={styles.symbolValue}>{this.state.waveVal}</Text>
                 {this.dirWave()}
             </View>
@@ -561,7 +594,7 @@ export default class forecast extends React.Component {
         return (
             <View style={styles.infoBox} >
                 {this.imgWind()}
-                <Text style={[styles.symbolName, { color: '#c9bd75' }]}>Wind</Text>
+                <Text style={[styles.symbolName, { color: '#c9bd75' }]}>{this.state.windTag}</Text>
                 <Text style={styles.symbolValue}>{this.state.windVal}</Text>
                 {this.dirWind()}
             </View>
@@ -629,7 +662,7 @@ export default class forecast extends React.Component {
     reviewQues() {
         return (
             <View>
-                <Text style={styles.reviewText}>Was this information useful?  </Text>
+                <Text style={styles.reviewText}>{this.state.reviewTag} </Text>
                 <Text style={styles.reviewDate}>{this.state.date}{"\n"}{"\n"}{"\n"}{"\n"}</Text>
             </View>
         );
@@ -693,7 +726,7 @@ const styles = StyleSheet.create({
         color: '#000000',
         //fontWeight: 'bold',
         fontSize: 16,
-        textAlign:'center',
+        textAlign: 'center',
         //justifyContent: 'center',
         //alignSelf:'flex-s'
     },
@@ -758,7 +791,8 @@ const styles = StyleSheet.create({
     },
     forecastFlex: {
         flex: 1,
-        marginLeft: 20
+        marginLeft: 20,
+        backgroundColor: '#ffffffff',
     },
     boxForcast: {
         backgroundColor: '#fff',
@@ -785,7 +819,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 18,
         width: 150,
-        marginLeft: 40,
     },
     textForcast: {
         color: '#000000',
@@ -801,8 +834,18 @@ const styles = StyleSheet.create({
         marginTop: -40,
         marginLeft: 20,
         marginRight: 20,
-        width: '80%',
-        height: 80,
+        width: '50%',
+        height: 60,
+    },
+    CurrentDateStyle:{
+        alignSelf:'flex-start',
+        marginLeft:20,
+        width:'40%',
+    },
+    dateText:{
+        fontWeight:'bold',
+        fontSize:18,
+        color:'#5D4E4F'
     },
     container: {
         backgroundColor: '#fff',
@@ -920,8 +963,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     reviewText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
+        width:'60%',
         lineHeight: 30,
     },
     reviewDate: {
@@ -952,6 +996,7 @@ const styles = StyleSheet.create({
         width: 50,
         borderRadius: 50,
         marginLeft: 5,
+        marginRight:2,
         backgroundColor: '#def5e9',
         alignItems: 'center',
         justifyContent: 'center',

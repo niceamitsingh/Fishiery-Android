@@ -1,13 +1,19 @@
 import React from 'react';
 import { StyleSheet, Alert, AppRegistry, Text, TextInput, View, Dimensions, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, NetInfo } from 'react-native';
-
-import site from './screens/fishing_sites'
-import playSound from './screens/play_sound'
-import forecast from './screens/forecast'
-import soundTest from './screens/soundTest'
+import { Constants } from 'expo';
+import site from './screens/fishing_sites';
+import playSound from './screens/play_sound';
+import forecast from './screens/forecast';
+import soundTest from './screens/soundTest';
 import request from './components/util/apirequest';
 import APIConfig from './components/config/APIconfig';
 import Loader from './components/util/loader';
+import getObjectForKey  from './components/util/title.localization';
+import {
+  widthPercentageToDP,
+  heightPercentageToDP,
+} from 'react-native-responsive-screen';
+
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
 const { MAIN_FRAME } = DEVICE_HEIGHT * .8;
@@ -39,11 +45,22 @@ class LoginPage extends React.Component {
       isConnected: true,
       TextInputNumber: '',
       loading: false,
+      app_name:'',
+      hi_there:'',
+      ask_phNo:'',
     }
   }
 
-  componentDidMount() {
+ 
+ async componentDidMount() {
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+    var labelText = await getObjectForKey('Login_Screen_Greeting');
+    var noText = await getObjectForKey('Login_Screen_Question');
+    this.setState({
+      hi_there:labelText,
+      ask_phNo:noText,
+    });
+    //console.log("Label"+ JSON.stringify(sText));
   }
 
   componentWillUnmount() {
@@ -74,7 +91,7 @@ class LoginPage extends React.Component {
     else {
       this.checkUser(this.state.TextInputNumber);
     }
-  }
+  };
 
   async checkUser(TextInputNumber) {
     this.setState({ loading: true });
@@ -106,6 +123,9 @@ class LoginPage extends React.Component {
     else {
       return (
         <View style={{ justifyContent: 'center', height: DEVICE_HEIGHT }}>
+        <Text style={styles.styleForVersionNumber}>
+          v{Constants.manifest.version}
+        </Text>
           {this.keyboardAvoid()}
           <Loader loading={this.state.loading} />
         </View>
@@ -132,7 +152,7 @@ class LoginPage extends React.Component {
         />
         {this.headerTextHi()}
         <Text style={styles.phNo}>
-          What's your phone number ?
+          {this.state.ask_phNo}
                 </Text>
       </View>
     );
@@ -151,7 +171,7 @@ class LoginPage extends React.Component {
   headerTextHi() {
     return (
       <Text style={styles.welcome}>
-        Hi there
+      {this.state.hi_there}
             </Text>
     );
   }
@@ -243,9 +263,9 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 24,
-    width: 150,
+    width: '60%',
     height: 30,
-    fontWeight: 'bold',
+    marginLeft: 10,
   },
   btnSubmit: {
     alignItems: 'center',
@@ -286,5 +306,20 @@ const styles = StyleSheet.create({
    offlineIcon: {
     width: 180,
     height: 182,
+  },
+  styleForVersionNumber: {
+    position: 'absolute',
+    //marginTop: heightPercentageToDP('95%'),
+    //marginLeft: widthPercentageToDP('65%'),
+    width: 100,
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontStyle: 'normal',
+    lineHeight: 19,
+    bottom:0,
+    letterSpacing: 0.64,
+    textAlign: 'right',
+    color: '#000000',
+    right:10,
   },
 });

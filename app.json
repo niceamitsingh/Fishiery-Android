@@ -7,7 +7,7 @@
   "5": "e",
   "6": "d",
   "expo": {
-    "name": "Fisher_1.0",
+    "name": "Machli",
     "slug": "Fisher_1",
     "privacy": "public",
     "sdkVersion": "32.0.0",
@@ -17,7 +17,7 @@
       "android": {
         "package": "com.guru.machli"
     },
-    "version": "1.0.3",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {

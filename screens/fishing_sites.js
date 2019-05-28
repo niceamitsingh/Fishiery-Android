@@ -7,9 +7,9 @@ import {
 import { StackNavigator } from 'react-navigation';
 import request from '../components/util/apirequest';
 import Loader from '../components/util/loader';
+import getObjectForKey  from '../components/util/title.localization';
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
-const cityNames = ["Karaikal", "Nagapatinam", "Poompuhar", "Vedarnyam"];
 
 function MiniOfflineSign() {
   Alert.alert("Please check your internet connection !");
@@ -31,15 +31,16 @@ export default class main extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      cityTxt_1: cityNames[0],
-      cityTxt_2: cityNames[1],
-      cityTxt_3: cityNames[2],
-      cityTxt_4: cityNames[3],
+      cityTxt_1: "",
+      cityTxt_2: "",
+      cityTxt_3: "",
+      cityTxt_4: "",
       isConnected: true,
       dataSource: [],
       landing_sites: [],
       selected_landing_site:[],
       loading: false,
+      fishing_page_title:'',
     }
   }
 
@@ -75,7 +76,7 @@ export default class main extends React.Component {
   }
 
   btnContinueTapped() {
-      this.state.loading=true;
+    this.setState({ loading: true });
     console.log("Selected Site: "+ JSON.stringify(this.state.landing_sites));
     AsyncStorage.setItem(
       "USERSELECTEDSITE",
@@ -84,12 +85,16 @@ export default class main extends React.Component {
     console.log('Landing Sites: '+this.state.selected_landing_site);
     console.log('Landing Sites Count: '+this.state.selected_landing_site.length);
     const { navigate } = this.props.navigation;
-    this.state.loading=false;
+    this.setState({ loading: false });
    navigate('page_forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+    var labelText = await getObjectForKey('Fishing_Sites_Title');
+    this.setState({
+      fishing_page_title:labelText,
+    });
   }
 
   componentWillUnmount() {
@@ -147,7 +152,7 @@ export default class main extends React.Component {
           <Image style={styles.iconMain}
             source={require('../assets/images/icon_main.png')}
           />
-          <Text style={styles.header}>Where do you fish?   </Text>
+          <Text style={styles.header}>{this.state.fishing_page_title}</Text>
           {this.fish_sitesList()}
           <Loader loading={this.state.loading} />
         </View>
