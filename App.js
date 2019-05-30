@@ -5,6 +5,10 @@ import site from './screens/fishing_sites';
 import playSound from './screens/play_sound';
 import forecast from './screens/forecast';
 import soundTest from './screens/soundTest';
+import askName from './screens/name_ask';
+import askLanguage from './screens/language_ask';
+import regis_success from './screens/registeration_success';
+
 import request from './components/util/apirequest';
 import APIConfig from './components/config/APIconfig';
 import Loader from './components/util/loader';
@@ -106,7 +110,18 @@ class LoginPage extends React.Component {
     console.log(JSON.stringify(response));
     if (response['users'].length == 0) {
       this.setState({ loading: false });
-      Alert.alert("You are not registered !");
+      Alert.alert(
+        'New to Machli ?',
+        "Your number dosen't seem to be registered with us. Do you want to Register ?",
+        [
+          {text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel'},
+          {text: 'Yes', onPress: () => {
+          console.log('OK Pressed');
+          this.props.navigation.navigate("register_askLanguage", { "ph_no": this.state.TextInputNumber});
+          }},
+        ],
+        { cancelable: true }
+      )
     }
     else {
       this.setState({ loading: false });
@@ -199,6 +214,9 @@ const RootStack = createStackNavigator(
     forcastAudio: playSound,
     page_forecast: forecast,
     sound: soundTest,
+    register_askName: askName,
+    register_askLanguage: askLanguage,
+    reg_success: regis_success,
   },
   {
     initialRouteName: 'login_page',

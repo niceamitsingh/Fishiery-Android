@@ -14,7 +14,7 @@ const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
 const OVERLY_LEN = .3 * DEVICE_HEIGHT;
 const SUB_VIEW = .67 * DEVICE_HEIGHT;
 const source = {
-    uri: 'https://s3.amazonaws.com/exp-us-standard/audio/playlist-example/Comfort_Fit_-_03_-_Sorry.mp3',
+    uri: 'http://guru.southindia.cloudapp.azure.com/OSF_Telugu_1780731751869209131.wav',
 };
 const acknowledgementText='Thanks for your feedback !';
 
@@ -61,6 +61,7 @@ export default class forecast extends React.Component {
             textInfo: 'something something',
             date: '14th May, 2019',
             selected_site: [],
+            selected_state:'',
             landing_sites: [],
             number_sites: [],
             site_all: [],
@@ -83,16 +84,19 @@ export default class forecast extends React.Component {
         //     navigate('forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
         const selected_site_array = navigation.getParam('Selected_Site');
         const landing_sites_array = navigation.getParam('Landing_Sites');
+        var state = navigation.getParam('Selected_State');
+        console.log("slected state reached: "+state);
         const number_fish_sites = landing_sites_array.length;
-        this.setState({ selected_site: selected_site_array, landing_sites: landing_sites_array, number_sites: number_fish_sites });
+        this.setState({ selected_site: selected_site_array, landing_sites: landing_sites_array, number_sites: number_fish_sites, selected_state:state });
         //   await this.apiCallForForecast();
     }
 
-    async apiCallForForecast(currentCity) {
+    async apiCallForForecast(currentCity,currentState) {
         //this.state.loading = true;
         console.log("Enquired city:" + currentCity);
+        console.log("Enquired state:" + currentState);
         var data = {
-            "state": "GUJARAT",
+            "state": currentState,
             "landing_centre": currentCity,
             "language": "Gujarati"
         };
@@ -126,11 +130,11 @@ export default class forecast extends React.Component {
 
         }*/
         console.log("Data: " + JSON.stringify(response.data[0]));
-        this.state.currentVal = response.data[0].max_current_speed_kmph + "-" + response.data[0].min_current_speed_kmph + " km/hr";
+        this.state.currentVal = response.data[0].min_current_speed_kmph + "-" + response.data[0].max_current_speed_kmph + " km/hr";
         this.state.currentDir = response.data[0].current_direction;
-        this.state.waveVal = response.data[0].max_wave_height_feet + "-" + response.data[0].min_wave_height_feet + " ft";
+        this.state.waveVal = response.data[0].min_wave_height_feet + "-" + response.data[0].max_wave_height_feet + " ft";
         this.state.waveDir = response.data[0].wave_direction;
-        this.state.windVal = response.data[0].max_wind_speed_kmph + "-" + response.data[0].min_wind_speed_kmph + " km/hr";
+        this.state.windVal = response.data[0].min_wind_speed_kmph + "-" + response.data[0].max_wind_speed_kmph + " km/hr";
         this.state.windDir = response.data[0].wind_direction;
         this.state.textInfo = response.text;
         this.state.date = response.data[0].date;
@@ -140,13 +144,14 @@ export default class forecast extends React.Component {
 
     async  componentDidMount() {
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+        this.setState({ loading: true });
         for (i = 0; i < this.state.number_sites; i++) {
             if (this.state.selected_site[0].landing_centre == this.state.landing_sites[i].landing_centre) {
                 this.state.cityCenterCount = i;
                 break;
             }
         }
-        await this.apiCallForForecast(this.state.selected_site[0].landing_centre);
+        await this.apiCallForForecast(this.state.selected_site[0].landing_centre,this.state.selected_state);
         var labelForecast = await getObjectForKey('Forecast_OSF_Title');
         var labelCaution = await getObjectForKey('Forecast_State_Caution');
         var labelPlaying = await getObjectForKey('Forecast_Audio_playing');
@@ -170,6 +175,7 @@ export default class forecast extends React.Component {
             windTag:labelWind,
             reviewTag:labelHelpful,
         });
+        this.setState({ loading: false });
     }
     componentWillUnmount() {
         NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
@@ -316,7 +322,7 @@ export default class forecast extends React.Component {
 
     async onSwipeLeft() {
         var currentCount = this.state.cityCenterCount;
-        currentCount = (currentCount + 1) % 7;
+        currentCount = (currentCount + 1) % this.state.number_sites;
         this.setState({
             cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
             leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
@@ -327,14 +333,15 @@ export default class forecast extends React.Component {
         this.setState({ loading: true });
         console.log("Loader state: " + this.state.loading);
         var centerCity = this.state.landing_sites[currentCount].landing_centre;
+        var centerState = this.state.landing_sites[currentCount].state;
         this.state.cityCenterCount = currentCount;
-        await this.apiCallForForecast(centerCity);
+        await this.apiCallForForecast(centerCity,centerState);
         this.setState({ loading: false });
     }
 
     async onSwipeRight() {
         var currentCount = this.state.cityCenterCount;
-        currentCount = (currentCount + 6) % 7;
+        currentCount = (currentCount + (this.state.number_sites-1)) % this.state.number_sites;
         this.setState({
             cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
             leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
@@ -343,9 +350,10 @@ export default class forecast extends React.Component {
             cityCenter: this.state.landing_sites[currentCount].landing_centre,
         });
         var centerCity = this.state.landing_sites[currentCount].landing_centre;
+        var centerState = this.state.landing_sites[currentCount].state;
         this.setState({ loading: true });
         this.state.cityCenterCount = currentCount;
-        await this.apiCallForForecast(centerCity);
+        await this.apiCallForForecast(centerCity,centerState);
         this.setState({ loading: false });
     }
 
@@ -425,8 +433,7 @@ export default class forecast extends React.Component {
                 {this.LeftCityIcon()}
                 <View style={styles.currentCityBox}>
                     <Text adjustsFontSizeToFit style={styles.currentCityText}>
-                        {this.state.cityCenter}
-                    </Text>
+                        {this.state.cityCenter}  </Text>
                 </View>
                 {this.rightCityIcon()}
                 {this.rightCityFrame()}
@@ -698,10 +705,10 @@ const styles = StyleSheet.create({
         height: 60,
     },
     iconMain: {
-        width: 50,
-        height: 50,
+        width: 60,
+        height: 60,
         marginLeft: 30,
-        marginTop: 30,
+        marginTop: 35,
     },
     cityBar: {
         flex: 1,

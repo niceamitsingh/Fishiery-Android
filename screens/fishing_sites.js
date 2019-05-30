@@ -4,12 +4,14 @@ import {
   widthPercentageToDP,
   heightPercentageToDP,
 } from 'react-native-responsive-screen';
+import { Constants, Location, Permissions } from 'expo';
 import { StackNavigator } from 'react-navigation';
 import request from '../components/util/apirequest';
 import Loader from '../components/util/loader';
-import getObjectForKey  from '../components/util/title.localization';
+import getObjectForKey from '../components/util/title.localization';
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
+var selectedState='';
 
 function MiniOfflineSign() {
   Alert.alert("Please check your internet connection !");
@@ -38,127 +40,167 @@ export default class main extends React.Component {
       isConnected: true,
       dataSource: [],
       landing_sites: [],
-      selected_landing_site:[],
+      selected_landing_site: [],
       loading: false,
-      fishing_page_title:'',
+      fishing_page_title: '',
+      location: null,
+      errorMessage: null,
+      latitude_site:'',
+      longitude_site:'',
     }
   }
 
   async componentWillMount() {
-    await this.apiCallForLandingSites();
-  }
-
-  async apiCallForLandingSites() {
-    var coordinates = {
-      "coordinates": {
-        "latitude": "23.812975",
-        "longitude": "68.723988"
-      }
-    };
-    var dataSource = await request("http://104.211.204.132/osf/engine/get_landing_centre/", coordinates);
-    console.log("Return Value: " + JSON.stringify(dataSource));
-    this.setState({ dataSource: dataSource });
-  }
-
-  selectItem = (data) => {
-    if(this.state.selected_landing_site != null){
-      this.state.selected_landing_site.pop();
-    }
-     this.state.selected_landing_site.push(data.item);
-     console.log("Selected Data: "+  JSON.stringify(data.item));
-    const { navigate } = this.props.navigation;
-
-    this.btnContinueTapped();
-  };
-
-  GetGridViewItem(item) {
-    this.setState({ landing_sites: item });
-  }
-
-  btnContinueTapped() {
-    this.setState({ loading: true });
-    console.log("Selected Site: "+ JSON.stringify(this.state.landing_sites));
-    AsyncStorage.setItem(
-      "USERSELECTEDSITE",
-      JSON.stringify(this.state.landing_sites)
-    );
-    console.log('Landing Sites: '+this.state.selected_landing_site);
-    console.log('Landing Sites Count: '+this.state.selected_landing_site.length);
-    const { navigate } = this.props.navigation;
-    this.setState({ loading: false });
-   navigate('page_forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
-  }
-
-  async componentDidMount() {
-    NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
-    var labelText = await getObjectForKey('Fishing_Sites_Title');
-    this.setState({
-      fishing_page_title:labelText,
-    });
-  }
-
-  componentWillUnmount() {
-    NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
-  }
-
-  handleConnectivityChange = isConnected => {
-    if (isConnected) {
-      this.setState({ isConnected });
+    if (Platform.OS === 'android' && !Constants.isDevice) {
+      this.setState({
+        errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
+      });
     } else {
-      this.setState({ isConnected });
+      this._getLocationAsync();
     }
-  };
-  fish_sitesList() {
-    return (
-      <FlatList
-        style={styles.GridContainer}
-        data={this.state.dataSource}
-        renderItem={(item) => this.renderItem(item)}
-        extraData={this.state}
-        numColumns={3}
-        backgroundColor="#f2f2f2"
-        //keyExtractor={"landing_centre_ID"}
-        keyExtractor= {(item, index) => item.landing_centre_ID}
-      />
-    );
   }
+  _getLocationAsync = async () => {
+  let { status } = await Permissions.askAsync(Permissions.LOCATION);
+    if (status !== 'granted') {
+      this.setState({
+        errorMessage: 'Permission to access location was denied',
+      });
+    }
+    this.setState({ loading: true });
+    let location = await Location.getCurrentPositionAsync({});
+    this.setState({ location });
+    console.log('location:' +JSON.stringify(this.state.location));
+    this.setState({
+      latitude_site:this.state.location.coords.latitude,
+      longitude_site:this.state.location.coords.longitude
+    });
+    console.log("Latitude: "+this.state.latitude_site);
+    console.log("Longitude: "+this.state.longitude_site);
+    await this.apiCallForLandingSites();
+    this.setState({ loading: false });
+  };
 
 
-  renderItem = (data) => (
-    <TouchableOpacity
-      style={[styles.list, data.item.selectedClass]}
-      onPress={() => this.selectItem(data)}
-    >
-      <Text
-        style={(styles.GridViewInsideTextItemStyle, styles.languageSelected)}
-      >
-        {data.item.landing_centre}
-      </Text>
-    </TouchableOpacity>
+async apiCallForLandingSites() {
+  const lat = this.state.latitude_site;
+  const lon = this.state.longitude_site;
+  //const lat ="8.0883";
+  //const lon ="77.5385";
+  var coordinates = {
+    "latitude": lat,
+    "longitude": lon
+  };
+  var dataSource = await request("http://104.211.204.132/osf/engine/get_nearest_landing_centres/", coordinates);
+  console.log("Return Value: " + JSON.stringify(dataSource));
+  this.setState({ dataSource: dataSource });
+}
+
+selectItem = (data) => {
+  if (this.state.selected_landing_site != null) {
+    this.state.selected_landing_site.pop();
+  }
+  this.state.selected_landing_site.push(data.item);
+  console.log("Selected Data: " + JSON.stringify(data.item));
+  selectedState=data.item.state;
+  const { navigate } = this.props.navigation;
+
+  this.btnContinueTapped();
+};
+
+GetGridViewItem(item) {
+  this.setState({ landing_sites: item });
+}
+
+btnContinueTapped() {
+  this.setState({ loading: true });
+  console.log("Selected Site: " + JSON.stringify(this.state.landing_sites));
+  console.log("Selected State : "+selectedState);
+  AsyncStorage.setItem(
+    "USERSELECTEDSITE",
+    JSON.stringify(this.state.landing_sites)
   );
+  console.log('Landing Sites: ' + this.state.selected_landing_site);
+  console.log('Landing Sites Count: ' + this.state.selected_landing_site.length);
+  const { navigate } = this.props.navigation;
+  this.setState({ loading: false });
+  navigate('page_forecast', { "Landing_Sites": this.state.dataSource, "Selected_Site": this.state.selected_landing_site, "Selected_State": selectedState });
+}
+
+async componentDidMount() {
+  NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
+  var labelText = await getObjectForKey('Fishing_Sites_Title');
+  this.setState({
+    fishing_page_title: labelText,
+  });
+}
+
+componentWillUnmount() {
+  NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
+}
+
+handleConnectivityChange = isConnected => {
+  if (isConnected) {
+    this.setState({ isConnected });
+  } else {
+    this.setState({ isConnected });
+  }
+};
+fish_sitesList() {
+  return (
+    <FlatList
+      style={styles.GridContainer}
+      data={this.state.dataSource}
+      renderItem={(item) => this.renderItem(item)}
+      extraData={this.state}
+      numColumns={3}
+      backgroundColor="#fff"
+      //keyExtractor={"landing_centre_ID"}
+      keyExtractor={(item, index) => item.landing_centre_ID}
+    />
+  );
+}
+
+
+renderItem = (data) => (
+  <TouchableOpacity
+    style={[styles.list, data.item.selectedClass]}
+    onPress={() => this.selectItem(data)}
+  >
+    <Text
+      style={(styles.GridViewInsideTextItemStyle, styles.languageSelected)}
+    >
+      {data.item.landing_centre}
+      {"\n"}
+      {data.item.distance_km} Km
+      </Text>
+  </TouchableOpacity>
+);
 
 
   static navigationOptions = {
-    header: null
-  };
-  render() {
-    const { navigate } = this.props.navigation;
-    if (!this.state.isConnected) {
-      return <MiniOfflineSign />;
-    }
-    else {
-      return (
-        <View style={styles.containerMain}>
-          <Image style={styles.iconMain}
-            source={require('../assets/images/icon_main.png')}
-          />
-          <Text style={styles.header}>{this.state.fishing_page_title}</Text>
-          {this.fish_sitesList()}
-          <Loader loading={this.state.loading} />
-        </View>
-      );
-    }
+  header: null
+};
+render() {
+  const { navigate } = this.props.navigation;
+  if (!this.state.isConnected) {
+    return <MiniOfflineSign />;
   }
+  if (this.state.errorMessage) {
+    text = this.state.errorMessage;
+  }
+  else {
+    return (
+      <View style={styles.containerMain}>
+        <Image style={styles.iconMain}
+          source={require('../assets/images/icon_main.png')}
+        />
+        <Text style={styles.header}>{this.state.fishing_page_title}</Text>
+        {this.fish_sitesList()}
+        <Loader loading={this.state.loading} />
+      </View>
+    );
+  }
+}
 
 
 }

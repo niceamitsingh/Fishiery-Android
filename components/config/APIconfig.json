@@ -1,7 +1,11 @@
 {
-    "Base_URL": "http://knowledgegrapg.jio.ril.com/api",
+    "Base_URL": "http://knowledgegrapg.jio.ril.com/api/guru",
     "Get_User_Profiles_API": {
-        "urlPath": "/guru/user/get/profile",
+        "urlPath": "/user/get/profile",
+        "method": "POST"
+    },
+    "New_User_Registration":{
+        "urlPath": "/user/create",
         "method": "POST"
     }
 }
