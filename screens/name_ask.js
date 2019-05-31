@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Alert, AppRegistry, Text, TextInput, View, Dimensions, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, NetInfo } from 'react-native';
+import { StyleSheet, Alert, AppRegistry, Text, TextInput, View, Dimensions, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, NetInfo, AsyncStorage } from 'react-native';
 import getObjectForKey from '../components/util/title.localization';
 import Loader from '../components/util/loader';
 import request from '../components/util/apirequest';
@@ -50,8 +50,16 @@ export default class ask_name extends React.Component {
         //var labelText = await getObjectForKey('Login_Screen_Greeting');
         //var noText = await getObjectForKey('Login_Screen_Question');
         const { navigation } = this.props;
-        const lang = navigation.getParam('language');
-        const num = navigation.getParam('ph_no');
+        var lang='';
+        var num='';
+        try {
+            //console.log("Label"+ JSON.stringify(sText));
+            lang = await AsyncStorage.getItem('DEFAULT_LANGUAGE');
+            num = await AsyncStorage.getItem('DEFAULT_NUMBER');
+          } catch (error) {
+            console.log(error);
+          }
+          console.log("Language is: " + lang);
         this.setState({
             user_Language:lang,
             user_Number:num,
@@ -60,7 +68,7 @@ export default class ask_name extends React.Component {
         //console.log("Label"+ JSON.stringify(sText));
     }
 
-    componentWillUnmount() {
+    async componentWillUnmount() {
         NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
     }
 

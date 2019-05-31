@@ -1,6 +1,6 @@
 {
     "App_Name": "మచిలీ",
-    "Login_Screen_Greeting": "మీరు ఉన్నారా ",
+    "Login_Screen_Greeting": "నమస్కారం",
     "Login_Screen_Question": "మీ ఫోన్ నెంబర్ ? ",
     "Login_Screen-Error_Not_Registered": "క్షమించండి, మీరు నమోదు కాబడలేదు !",
     "Fishing_Sites_Title": "చేపల సమాచారము ?",
@@ -10,6 +10,7 @@
     "Forecast_Screen_Directions_West": "పడమర",
     "Forecast_OSF_Title": "సమాచారము",
     "Forecast_State_Caution": "చూచనలు",
+    "Forecast_State_Danger": "ప్రమాదం",
     "Forecast_Audio_playing": "ఆడియో వినండి",
     "Forecast_State_Safe": "సురక్సితమైన",
     "Forecast_Component_Current": "వడి",

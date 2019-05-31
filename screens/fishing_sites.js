@@ -152,7 +152,7 @@ fish_sitesList() {
       data={this.state.dataSource}
       renderItem={(item) => this.renderItem(item)}
       extraData={this.state}
-      numColumns={3}
+      numColumns={2}
       backgroundColor="#fff"
       //keyExtractor={"landing_centre_ID"}
       keyExtractor={(item, index) => item.landing_centre_ID}
@@ -167,7 +167,7 @@ renderItem = (data) => (
     onPress={() => this.selectItem(data)}
   >
     <Text
-      style={(styles.GridViewInsideTextItemStyle, styles.languageSelected)}
+      style={(styles.GridViewInsideTextItemStyle)}
     >
       {data.item.landing_centre}
       {"\n"}
@@ -310,12 +310,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#eeeeee',
   },
   GridViewInsideTextItemStyle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     fontStyle: 'normal',
-    lineHeight: 23,
+    width:widthPercentageToDP("40%"),
+    lineHeight: 30,
     letterSpacing: 0,
-    //textAlign: 'center',
+    textAlign: 'center',
     color: '#ffffff',
   },
   NativeLanguageTextStyle: {
@@ -366,10 +367,10 @@ const styles = StyleSheet.create({
 
   list: {
     justifyContent: 'center',
-    flex: 0.333,
+    flex: 0.5,
     alignItems: 'center',
     height: 100,
-    width: widthPercentageToDP("30%"),
+    width: widthPercentageToDP("50%"),
     margin: 3,
     borderRadius: 4,
     backgroundColor: '#009e7e',

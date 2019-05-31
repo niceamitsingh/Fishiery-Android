@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TextInput, View, Button, Image, Dimensions, ImageBackground, TouchableOpacity, PermissionsAndroid, NetInfo, Alert, AsyncStorage, FlatList, Platform } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Button, Image, Dimensions, ImageBackground, TouchableOpacity, PermissionsAndroid, NetInfo, Alert, AsyncStorage, FlatList, Platform,} from 'react-native';
 import {
     widthPercentageToDP,
     heightPercentageToDP,
@@ -37,11 +37,23 @@ export default class main extends React.Component {
             selected_language: [],
             loading: false,
             fishing_page_title: '',
-            ph_number:'',
+            //ph_number:'',
         }
     }
 
     async componentWillMount() {
+        var state;
+        try {
+            //console.log("Label"+ JSON.stringify(sText));
+            state = await AsyncStorage.getItem('DEFAULT_STATE');
+            if (value == 'Logged_In'){
+              console.log(value);
+              this.props.navigation.navigate("page_forecast");
+            }
+          } catch (error) {
+            // Error retrieving data
+            console.log("Not logged in yet !")
+          }
         await this.apiCallForLandingSites();
     }
 
@@ -89,14 +101,15 @@ export default class main extends React.Component {
         this.btnContinueTapped(languageSelected);
     };
 
-    btnContinueTapped(languageSelected) {
+    async btnContinueTapped(languageSelected) {
         this.setState({ loading: true });
-        AsyncStorage.setItem(
-            "USERSELECTEDSITE",languageSelected
-        );
         const { navigate } = this.props.navigation;
+        AsyncStorage.setItem(
+            "DEFAULT_LANGUAGE",
+            languageSelected
+          );
         this.setState({ loading: false });
-        navigate('register_askName', { "language": languageSelected , "ph_no":this.state.ph_number});
+        navigate('login_page', {/* "language": languageSelected , "ph_no":this.state.ph_number*/});
     }
 
     async componentDidMount() {
@@ -104,9 +117,9 @@ export default class main extends React.Component {
         //var labelText = await getObjectForKey('Fishing_Sites_Title');
         var labelText = 'Select a language'
         const { navigation } = this.props;
-        const phone_number = navigation.getParam('ph_no');
+        //const phone_number = navigation.getParam('ph_no');
         this.setState({
-            ph_number:phone_number,
+            ph_number:"NaN",
             fishing_page_title: labelText,
         });
     }

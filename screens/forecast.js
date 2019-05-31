@@ -72,16 +72,19 @@ export default class forecast extends React.Component {
             cautionTag:'',
             playingTag:'',
             currentTag:'',
+            safeTag:'',
+            dangerTag:'',
             waveTag:'',
             windTag:'',
+            language:'',
+            fishingState:'',
+            fishingStateFlag:'',
         };
     }
 
     async componentWillMount() {
         console.log('Reached forecast');
         const { navigation } = this.props;
-        //this.state.loading = true;
-        //     navigate('forecast',{"Landing_Sites":this.state.dataSource, "Selected_Site":this.state.selected_landing_site});
         const selected_site_array = navigation.getParam('Selected_Site');
         const landing_sites_array = navigation.getParam('Landing_Sites');
         var state = navigation.getParam('Selected_State');
@@ -93,12 +96,20 @@ export default class forecast extends React.Component {
 
     async apiCallForForecast(currentCity,currentState) {
         //this.state.loading = true;
+        var lang;
+        try {
+            //console.log("Label"+ JSON.stringify(sText));
+            lang = await AsyncStorage.getItem('DEFAULT_LANGUAGE');
+          } catch (error) {
+            // Error retrieving data
+          }
+          console.log("Language is: " + lang);
         console.log("Enquired city:" + currentCity);
         console.log("Enquired state:" + currentState);
         var data = {
             "state": currentState,
             "landing_centre": currentCity,
-            "language": "Gujarati"
+            "language": lang
         };
         console.log("Request Body: " + JSON.stringify(data));
         response = await request("http://104.211.204.132/osf/engine/get_osf/", data);
@@ -130,14 +141,22 @@ export default class forecast extends React.Component {
 
         }*/
         console.log("Data: " + JSON.stringify(response.data[0]));
+        var cond = response.data[0].flag;
+        console.log("Condition is: "+cond);
+        console.log("Condition in state: "+this.state.centerState);
         this.state.currentVal = response.data[0].min_current_speed_kmph + "-" + response.data[0].max_current_speed_kmph + " km/hr";
         this.state.currentDir = response.data[0].current_direction;
         this.state.waveVal = response.data[0].min_wave_height_feet + "-" + response.data[0].max_wave_height_feet + " ft";
         this.state.waveDir = response.data[0].wave_direction;
         this.state.windVal = response.data[0].min_wind_speed_kmph + "-" + response.data[0].max_wind_speed_kmph + " km/hr";
         this.state.windDir = response.data[0].wind_direction;
+        this.state.fishingState = cond;
         this.state.textInfo = response.text;
         this.state.date = response.data[0].date;
+        AsyncStorage.setItem(
+            "DEFAULT_FORECAST_STATE",
+            cond
+          );
         this.setState({ loading: false });
         console.log("Loading state: " + this.state.loading);
     }
@@ -159,6 +178,9 @@ export default class forecast extends React.Component {
         var labelWave = await getObjectForKey('Forecast_Component_Wave');
         var labelWind = await getObjectForKey('Forecast_Component_Wind');
         var labelHelpful = await getObjectForKey('Forecast_User_Review_Title');
+        var labelSafe = await getObjectForKey('Forecast_State_Safe');
+        var labelDanger = await getObjectForKey('Forecast_State_Danger');
+
 
         this.setState({
             cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
@@ -166,7 +188,8 @@ export default class forecast extends React.Component {
             cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].landing_centre,
             rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].distance_km,
             cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
-
+            dangerTag:labelDanger,
+            safeTag:labelSafe,
             forecastTag:labelForecast,
             cautionTag:labelCaution,
             playingTag:labelPlaying,
@@ -312,6 +335,16 @@ export default class forecast extends React.Component {
             </View>
     }
 
+    toggle_image = () => {
+        return this.state.isPlaying ? (
+            <Image style={styles.playImg}
+                        source={require('../assets/images/pause.png')}
+        />) :
+                    <Image style={styles.playImg}
+                    source={require('../assets/images/play_green.png')}
+                />
+    }
+
     onSwipeUp(gestureState) {
         this.setState({ myText: 'You swiped up!' });
     }
@@ -410,11 +443,45 @@ export default class forecast extends React.Component {
                 {this.forcastOverlay()}
                 {this.mainContent()}
                 {this.animateView()}
-                <Loader loading={this.state.loading} />
             </View>
         );
     }
 
+    setCondition(){
+          cond = this.state.fishingState;
+          console.log("State:    "+cond);
+          if(cond =="Safe"){
+              return (
+                    <View style={[styles.boxCondition,{backgroundColor:'#cce9e3'}]}>
+                        <Image style={[styles.cautionIcon,{height:40,width:40}]}
+                            source={require('../assets/images/safe.png')}
+                        />
+                        {this.textCaution1()}
+                    </View>
+            );
+          }
+          else if (cond == "Caution" || cond == "High Wave Alert")
+          {
+            return (
+                    <View style={[styles.boxCondition,{backgroundColor:'#fff4cf'}]}>
+                        <Image style={styles.cautionIcon}
+                            source={require('../assets/images/caution_small.png')}
+                        />
+                        {this.textCaution2()}
+                    </View>
+            );
+          }
+          else{
+            return (
+                    <View style={[styles.boxCondition,{backgroundColor:'#fbdada'}]}>
+                        <Image style={[styles.cautionIcon,{height:40,width:40}]}
+                            source={require('../assets/images/danger.png')}
+                        />
+                        {this.textCaution3()}
+                    </View>
+            );
+          }
+    }
     headerView() {
         return (
             <View style={styles.header}>
@@ -496,9 +563,7 @@ export default class forecast extends React.Component {
             <View style={styles.overlay} >
                 <TouchableOpacity style={styles.boxForcast}
                     onPress={this._playAndPause}>
-                    <Image style={styles.playImg}
-                        source={require('../assets/images/play_green.png')}
-                    />
+                    {this.toggle_image()}
                     {this.togglingTab()}
                 </TouchableOpacity>
             </View>
@@ -522,6 +587,7 @@ export default class forecast extends React.Component {
                 {this.rowWave()}
                 {this.rowWind()}
                 {this.bottomtab()}
+                <Loader loading={this.state.loading} />
             </View>
         );
     }
@@ -537,19 +603,29 @@ export default class forecast extends React.Component {
     warningStatus() {
         return (
             <View style={styles.flexCondition}>
-                <View style={styles.boxCondition}>
-                    <Image style={styles.cautionIcon}
-                        source={require('../assets/images/caution_small.png')}
-                    />
-                    {this.textCaution()}
-                </View>
+                {this.setCondition()}
             </View>
         );
+
     }
-    textCaution() {
+    textCaution1() {
+        return (
+            <Text style={[styles.textCondition,{color:'#039073'}]}>
+                {this.state.safeTag}
+                            </Text>
+        );
+    }
+    textCaution2() {
         return (
             <Text style={styles.textCondition}>
                 {this.state.cautionTag}
+                            </Text>
+        );
+    }
+    textCaution3() {
+        return (
+            <Text style={[styles.textCondition,{color:'#eb1a1a'}]}>
+                {this.state.dangerTag}
                             </Text>
         );
     }
@@ -668,7 +744,7 @@ export default class forecast extends React.Component {
     }
     reviewQues() {
         return (
-            <View>
+            <View style={styles.quesFlex}>
                 <Text style={styles.reviewText}>{this.state.reviewTag} </Text>
                 <Text style={styles.reviewDate}>{this.state.date}{"\n"}{"\n"}{"\n"}{"\n"}</Text>
             </View>
@@ -965,24 +1041,27 @@ const styles = StyleSheet.create({
         alignSelf: 'center'
     },
     reviewFlex: {
-        flex: 1,
+        flex: .5,
+        paddingRight:2,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        //justifyContent: 'space-between',
     },
     reviewText: {
         fontSize: 12,
         fontWeight: 'bold',
-        width:'60%',
         lineHeight: 30,
     },
     reviewDate: {
         fontSize: 12,
         color: '#626262',
     },
+    quesFlex:{
+        width:'65%',
+    },
     reviewUserFlex: {
         flex: 1,
         flexDirection: 'row',
-        width: 60,
+        width: 100,
         justifyContent: 'center'
     },
     reviewIcon: {
@@ -1002,8 +1081,7 @@ const styles = StyleSheet.create({
         height: 50,
         width: 50,
         borderRadius: 50,
-        marginLeft: 5,
-        marginRight:2,
+        marginLeft:3,
         backgroundColor: '#def5e9',
         alignItems: 'center',
         justifyContent: 'center',
