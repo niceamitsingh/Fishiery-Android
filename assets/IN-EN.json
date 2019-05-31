@@ -1,8 +1,9 @@
 {
     "App_Name": "Machli",
     "Login_Screen_Greeting": "Hi there",
+    "Login_Screen_Question": "What's your phone number ?",
     "Login_Screen-Error_Not_Registered": "Sorry, you are not registered !",
-    "Fishing_Sites_Title": "Where do you fish ?",
+    "Fishing_Sites_Title": "Where do you fish ?  ",
     "Forecast_Screen_Directions_North": "North",
     "Forecast_Screen_Directions_South": "South",
     "Forecast_Screen_Directions_East": "East",

@@ -115,7 +115,7 @@ export default class main extends React.Component {
     async componentDidMount() {
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
         //var labelText = await getObjectForKey('Fishing_Sites_Title');
-        var labelText = 'Select a language'
+        var labelText = ' Select a language'
         const { navigation } = this.props;
         //const phone_number = navigation.getParam('ph_no');
         this.setState({

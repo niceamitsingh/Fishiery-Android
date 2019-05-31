@@ -8,7 +8,7 @@ import Loader from '../components/util/loader';
 import request from '../components/util/apirequest';
 import APIConfig from '../components/config/APIconfig';
 import GestureRecognizer, { swipeDirections } from 'react-native-swipe-gestures';
-import getObjectForKey  from '../components/util/title.localization';
+import getObjectForKey from '../components/util/title.localization';
 
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get('window');
 const OVERLY_LEN = .3 * DEVICE_HEIGHT;
@@ -16,7 +16,7 @@ const SUB_VIEW = .67 * DEVICE_HEIGHT;
 const source = {
     uri: 'http://guru.southindia.cloudapp.azure.com/OSF_Telugu_1780731751869209131.wav',
 };
-const acknowledgementText='Thanks for your feedback !';
+const acknowledgementText = 'Thanks for your feedback !';
 
 function MiniOfflineSign() {
     Alert.alert("Please check your internet connection !");
@@ -37,7 +37,11 @@ var isHidden = true;
 var toValue;
 
 const alert_feedback = () => {
-    Alert.alert(acknowledgementText)
+    var response = request(
+        APIConfig.Base_URL + APIConfig.User_Feedback,
+        data
+      );
+    Alert.alert(acknowledgementText);
 }
 
 
@@ -61,49 +65,81 @@ export default class forecast extends React.Component {
             textInfo: 'something something',
             date: '14th May, 2019',
             selected_site: [],
-            selected_state:'',
+            selected_state: '',
             landing_sites: [],
             number_sites: [],
             site_all: [],
             cityCenterCount: 0,
             leftCityDistance: 0,
             rightCityDistance: 0,
-            forecastTag:'',
-            cautionTag:'',
-            playingTag:'',
-            currentTag:'',
-            safeTag:'',
-            dangerTag:'',
-            waveTag:'',
-            windTag:'',
-            language:'',
-            fishingState:'',
-            fishingStateFlag:'',
+            forecastTag: '',
+            cautionTag: '',
+            playingTag: '',
+            currentTag: '',
+            safeTag: '',
+            dangerTag: '',
+            waveTag: '',
+            windTag: '',
+            language: '',
+            fishingState: '',
+            fishingStateFlag: '',
+            landing_site_id:'',
         };
     }
 
     async componentWillMount() {
         console.log('Reached forecast');
         const { navigation } = this.props;
-        const selected_site_array = navigation.getParam('Selected_Site');
-        const landing_sites_array = navigation.getParam('Landing_Sites');
-        var state = navigation.getParam('Selected_State');
-        console.log("slected state reached: "+state);
+        var site_id = '';
+        var selected_site_array = [];
+        var state = "";
+        var lat;
+        var lon;
+        //const lat = this.state.latitude_site;
+        //const lon = this.state.longitude_site;
+        try {
+            lat = await AsyncStorage.getItem('DEFAULT_LAT');
+            lon = await AsyncStorage.getItem('DEFAULT_LONG');
+        } catch (error) {
+            // Error retrieving data
+        }
+        console.log(lat + "   " + lon);
+        var coordinates = {
+            "latitude": lat,
+            "longitude": lon
+        };
+        var dataSource = await request("http://104.211.204.132/osf/engine/get_nearest_landing_centres/", coordinates);
+        console.log("Return Value: " + dataSource);
+        if (dataSource == "timeout of 60000ms exceeded") {
+            Alert.alert('Please try after some time');
+        } else {
+            selected_site_array = dataSource[0];
+            state = dataSource[0].state;
+            site_id = dataSource[0].landing_centre_ID;
+        }
+        var received_site = navigation.getParam('Selected_Site');
+        var received_state = navigation.getParam('Selected_State');
+        if (received_site !== null) {
+            selected_site_array = received_site;
+            site_id = received_site.landing_centre_ID;
+            state = received_state;
+        }
+        console.log("slected state reached: " + state);
         const number_fish_sites = landing_sites_array.length;
-        this.setState({ selected_site: selected_site_array, landing_sites: landing_sites_array, number_sites: number_fish_sites, selected_state:state });
-        //   await this.apiCallForForecast();
+        this.setState({ selected_site: selected_site_array, landing_sites: dataSource, number_sites: number_fish_sites, selected_state: state, landing_centre_ID:site_id});
+        this.apiCallForForecast();
     }
 
-    async apiCallForForecast(currentCity,currentState) {
+    async apiCallForForecast(currentCity, currentState) {
         //this.state.loading = true;
         var lang;
         try {
             //console.log("Label"+ JSON.stringify(sText));
             lang = await AsyncStorage.getItem('DEFAULT_LANGUAGE');
-          } catch (error) {
+        } catch (error) {
             // Error retrieving data
-          }
-          console.log("Language is: " + lang);
+        }
+        console.log("Language is: " + lang);
         console.log("Enquired city:" + currentCity);
         console.log("Enquired state:" + currentState);
         var data = {
@@ -113,37 +149,11 @@ export default class forecast extends React.Component {
         };
         console.log("Request Body: " + JSON.stringify(data));
         response = await request("http://104.211.204.132/osf/engine/get_osf/", data);
-        /*var stubresponse = {
-            "data": [{
-                "state": "GUJARAT",
-                "district": "Kachchh",
-                "landing centre": "Lakhapat",
-                "engine_data": {
-                    "date": "24th May, 2019",
-                    "current": {
-                        "max_speed_kmph": 25,
-                        "min_speed_kmph": 2,
-                        "direction_deg": "NNW"
-                    },
-                    "wind": {
-                        "max_speed_kmph": 23,
-                        "min_speed_kmph": 1,
-                        "direction_deg": "NNW"
-                    },
-                    "wave": {
-                        "max_height_ft": 4,
-                        "min_height_ft": 5,
-                        "direction_deg": "NNE"
-                    }
-                }
-            }],
-            "text": "નમસ્કાર વેરાવળ વિસ્તારના સાગરખેડુ મિત્રો માટે ઇન્કોઇસ અને રીલાયન્સ ફાઉન્ડેશન દ્વારા સમુદ્રની સ્થીતિ વિષેની માહીતી Lakhapat. આવતીકાલ 2019-03-14 ના રોજ 100 કિલોમીટર સુધી પવનની ઝડપ 5.0 થી 24.0 કીમી પ્રતિ કલાકે NNW દીશાની રહેશે . મહત્તમ પવનની ઝડપ સાંજના 5:30 કલાકે રહેશે સમુદ્રના મોજાની ઉંચાઇ 1.0 થી 3.0 ફૂટ અને દિશા NNE ની  રહેશે, મહત્તમ મોજા ની ઊંચાઈ રાત્રિના 11:30 કલાકે રહેશે. પાણીનો પ્રવાહ 1.0 થી 24.0 સેમી   દિશાનો રહેશે NNW. ઇન્કોઇસ દ્વારા આ માહિતીનો સ્ત્રોત મળેલ છે. વધુ માહિતી માટે રિલાયંસ ફાઉન્ડેશનના ટોલ ફ્રી નબર ૧૮૦૦ ૪૧૯ ૮૮૦૦ ઉપર સંપર્ક કરવા વિનતી સમુદ્રમાં પ્રવેશવાનું સલામત છે અને સમુદ્રની સ્થિતિ શાંત થઈ જશે"
 
-        }*/
         console.log("Data: " + JSON.stringify(response.data[0]));
         var cond = response.data[0].flag;
-        console.log("Condition is: "+cond);
-        console.log("Condition in state: "+this.state.centerState);
+        console.log("Condition is: " + cond);
+        console.log("Condition in state: " + this.state.centerState);
         this.state.currentVal = response.data[0].min_current_speed_kmph + "-" + response.data[0].max_current_speed_kmph + " km/hr";
         this.state.currentDir = response.data[0].current_direction;
         this.state.waveVal = response.data[0].min_wave_height_feet + "-" + response.data[0].max_wave_height_feet + " ft";
@@ -156,7 +166,7 @@ export default class forecast extends React.Component {
         AsyncStorage.setItem(
             "DEFAULT_FORECAST_STATE",
             cond
-          );
+        );
         this.setState({ loading: false });
         console.log("Loading state: " + this.state.loading);
     }
@@ -170,7 +180,8 @@ export default class forecast extends React.Component {
                 break;
             }
         }
-        await this.apiCallForForecast(this.state.selected_site[0].landing_centre,this.state.selected_state);
+        await this.apiCallForForecast(this.state.selected_site[0].landing_centre, this.state.selected_state);
+        this.setState({ loading: true });
         var labelForecast = await getObjectForKey('Forecast_OSF_Title');
         var labelCaution = await getObjectForKey('Forecast_State_Caution');
         var labelPlaying = await getObjectForKey('Forecast_Audio_playing');
@@ -181,22 +192,21 @@ export default class forecast extends React.Component {
         var labelSafe = await getObjectForKey('Forecast_State_Safe');
         var labelDanger = await getObjectForKey('Forecast_State_Danger');
 
-
         this.setState({
             cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
             leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
             cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].landing_centre,
             rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].distance_km,
             cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
-            dangerTag:labelDanger,
-            safeTag:labelSafe,
-            forecastTag:labelForecast,
-            cautionTag:labelCaution,
-            playingTag:labelPlaying,
-            currentTag:labelCurrent,
-            waveTag:labelWave,
-            windTag:labelWind,
-            reviewTag:labelHelpful,
+            dangerTag: labelDanger,
+            safeTag: labelSafe,
+            forecastTag: labelForecast,
+            cautionTag: labelCaution,
+            playingTag: labelPlaying,
+            currentTag: labelCurrent,
+            waveTag: labelWave,
+            windTag: labelWind,
+            reviewTag: labelHelpful,
         });
         this.setState({ loading: false });
     }
@@ -313,8 +323,8 @@ export default class forecast extends React.Component {
     _playAndPause = () => {
         switch (this.state.playingStatus) {
             case 'nosound':
-            this.setState({ loading: true });
-                    this._playRecording();
+                this.setState({ loading: true });
+                this._playRecording();
                 break;
             case 'donepause':
             case 'playing':
@@ -331,18 +341,18 @@ export default class forecast extends React.Component {
             <View>
                 <Text style={styles.textForcast}>
                     {this.state.forecastTag}
-        </Text>
+                </Text>
             </View>
     }
 
     toggle_image = () => {
         return this.state.isPlaying ? (
             <Image style={styles.playImg}
-                        source={require('../assets/images/pause.png')}
-        />) :
-                    <Image style={styles.playImg}
-                    source={require('../assets/images/play_green.png')}
-                />
+                source={require('../assets/images/pause.png')}
+            />) :
+            <Image style={styles.playImg}
+                source={require('../assets/images/play_green.png')}
+            />
     }
 
     onSwipeUp(gestureState) {
@@ -368,13 +378,13 @@ export default class forecast extends React.Component {
         var centerCity = this.state.landing_sites[currentCount].landing_centre;
         var centerState = this.state.landing_sites[currentCount].state;
         this.state.cityCenterCount = currentCount;
-        await this.apiCallForForecast(centerCity,centerState);
+        await this.apiCallForForecast(centerCity, centerState);
         this.setState({ loading: false });
     }
 
     async onSwipeRight() {
         var currentCount = this.state.cityCenterCount;
-        currentCount = (currentCount + (this.state.number_sites-1)) % this.state.number_sites;
+        currentCount = (currentCount + (this.state.number_sites - 1)) % this.state.number_sites;
         this.setState({
             cityLeft: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
             leftCityDistance: this.state.landing_sites[(currentCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
@@ -386,7 +396,7 @@ export default class forecast extends React.Component {
         var centerState = this.state.landing_sites[currentCount].state;
         this.setState({ loading: true });
         this.state.cityCenterCount = currentCount;
-        await this.apiCallForForecast(centerCity,centerState);
+        await this.apiCallForForecast(centerCity, centerState);
         this.setState({ loading: false });
     }
 
@@ -447,40 +457,39 @@ export default class forecast extends React.Component {
         );
     }
 
-    setCondition(){
-          cond = this.state.fishingState;
-          console.log("State:    "+cond);
-          if(cond =="Safe"){
-              return (
-                    <View style={[styles.boxCondition,{backgroundColor:'#cce9e3'}]}>
-                        <Image style={[styles.cautionIcon,{height:40,width:40}]}
-                            source={require('../assets/images/safe.png')}
-                        />
-                        {this.textCaution1()}
-                    </View>
-            );
-          }
-          else if (cond == "Caution" || cond == "High Wave Alert")
-          {
+    setCondition() {
+        cond = this.state.fishingState;
+        console.log("State:    " + cond);
+        if (cond == "Safe") {
             return (
-                    <View style={[styles.boxCondition,{backgroundColor:'#fff4cf'}]}>
-                        <Image style={styles.cautionIcon}
-                            source={require('../assets/images/caution_small.png')}
-                        />
-                        {this.textCaution2()}
-                    </View>
+                <View style={[styles.boxCondition, { backgroundColor: '#cce9e3' }]}>
+                    <Image style={[styles.cautionIcon, { height: 40, width: 40 }]}
+                        source={require('../assets/images/safe.png')}
+                    />
+                    {this.textCaution1()}
+                </View>
             );
-          }
-          else{
+        }
+        else if (cond == "Caution" || cond == "High Wave Alert") {
             return (
-                    <View style={[styles.boxCondition,{backgroundColor:'#fbdada'}]}>
-                        <Image style={[styles.cautionIcon,{height:40,width:40}]}
-                            source={require('../assets/images/danger.png')}
-                        />
-                        {this.textCaution3()}
-                    </View>
+                <View style={[styles.boxCondition, { backgroundColor: '#fff4cf' }]}>
+                    <Image style={styles.cautionIcon}
+                        source={require('../assets/images/caution_small.png')}
+                    />
+                    {this.textCaution2()}
+                </View>
             );
-          }
+        }
+        else {
+            return (
+                <View style={[styles.boxCondition, { backgroundColor: '#fbdada' }]}>
+                    <Image style={[styles.cautionIcon, { height: 40, width: 40 }]}
+                        source={require('../assets/images/danger.png')}
+                    />
+                    {this.textCaution3()}
+                </View>
+            );
+        }
     }
     headerView() {
         return (
@@ -610,23 +619,23 @@ export default class forecast extends React.Component {
     }
     textCaution1() {
         return (
-            <Text style={[styles.textCondition,{color:'#039073'}]}>
+            <Text style={[styles.textCondition, { color: '#039073' }]}>
                 {this.state.safeTag}
-                            </Text>
+            </Text>
         );
     }
     textCaution2() {
         return (
             <Text style={styles.textCondition}>
                 {this.state.cautionTag}
-                            </Text>
+            </Text>
         );
     }
     textCaution3() {
         return (
-            <Text style={[styles.textCondition,{color:'#eb1a1a'}]}>
+            <Text style={[styles.textCondition, { color: '#eb1a1a' }]}>
                 {this.state.dangerTag}
-                            </Text>
+            </Text>
         );
     }
     rowCurrent() {
@@ -753,7 +762,7 @@ export default class forecast extends React.Component {
     userReviewInput() {
         return (
             <View style={styles.reviewUserFlex}>
-                <TouchableOpacity style={styles.iconNotUseful} onPress={alert_feedback}>
+                <TouchableOpacity style={styles.iconNotUseful} onPress={alert_feedback(0)}>
                     <Image style={styles.reviewIcon}
                         source={require('../assets/images/unsatisfied.png')}
                     />
@@ -764,7 +773,7 @@ export default class forecast extends React.Component {
     }
     iconSatisfied() {
         return (
-            <TouchableOpacity style={styles.iconUseful} onPress={alert_feedback}>
+            <TouchableOpacity style={styles.iconUseful} onPress={alert_feedback(5)}>
                 <Image style={styles.reviewIcon}
                     source={require('../assets/images/satisfied.png')}
                 />
@@ -920,15 +929,15 @@ const styles = StyleSheet.create({
         width: '50%',
         height: 60,
     },
-    CurrentDateStyle:{
-        alignSelf:'flex-start',
-        marginLeft:20,
-        width:'40%',
+    CurrentDateStyle: {
+        alignSelf: 'flex-start',
+        marginLeft: 20,
+        width: '40%',
     },
-    dateText:{
-        fontWeight:'bold',
-        fontSize:18,
-        color:'#5D4E4F'
+    dateText: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        color: '#5D4E4F'
     },
     container: {
         backgroundColor: '#fff',
@@ -1042,7 +1051,7 @@ const styles = StyleSheet.create({
     },
     reviewFlex: {
         flex: .5,
-        paddingRight:2,
+        paddingRight: 2,
         flexDirection: 'row',
         //justifyContent: 'space-between',
     },
@@ -1055,8 +1064,8 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#626262',
     },
-    quesFlex:{
-        width:'65%',
+    quesFlex: {
+        width: '65%',
     },
     reviewUserFlex: {
         flex: 1,
@@ -1081,7 +1090,7 @@ const styles = StyleSheet.create({
         height: 50,
         width: 50,
         borderRadius: 50,
-        marginLeft:3,
+        marginLeft: 3,
         backgroundColor: '#def5e9',
         alignItems: 'center',
         justifyContent: 'center',

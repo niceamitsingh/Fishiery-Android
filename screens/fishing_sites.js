@@ -76,14 +76,33 @@ export default class main extends React.Component {
     });
     console.log("Latitude: "+this.state.latitude_site);
     console.log("Longitude: "+this.state.longitude_site);
+    var lat=this.state.latitude_site.toString();
+    var long=this.state.longitude_site.toString();
+   await AsyncStorage.setItem(
+      "DEFAULT_LAT",
+      lat
+    );
+    await AsyncStorage.setItem(
+      "DEFAULT_LONG",
+      long
+    );
     await this.apiCallForLandingSites();
     this.setState({ loading: false });
   };
 
 
 async apiCallForLandingSites() {
-  const lat = this.state.latitude_site;
-  const lon = this.state.longitude_site;
+  var lat;
+  var lon;
+  //const lat = this.state.latitude_site;
+  //const lon = this.state.longitude_site;
+  try {
+    lat = await AsyncStorage.getItem('DEFAULT_LAT');
+    lon = await AsyncStorage.getItem('DEFAULT_LONG');
+  } catch (error) {
+    // Error retrieving data
+  }
+  console.log(lat+ "    "  +lon);
   //const lat ="8.0883";
   //const lon ="77.5385";
   var coordinates = {
@@ -91,8 +110,13 @@ async apiCallForLandingSites() {
     "longitude": lon
   };
   var dataSource = await request("http://104.211.204.132/osf/engine/get_nearest_landing_centres/", coordinates);
-  console.log("Return Value: " + JSON.stringify(dataSource));
-  this.setState({ dataSource: dataSource });
+  console.log("Return Value: " + dataSource);
+  if(dataSource == "timeout of 60000ms exceeded") {
+    Alert.alert('Please try after some time');
+  } else {
+    this.setState({ dataSource: dataSource });
+  }
+  this.setState({ loading: false });
 }
 
 selectItem = (data) => {
@@ -249,6 +273,7 @@ const styles = StyleSheet.create({
   header: {
     fontWeight: 'bold',
     fontSize: 32,
+    textAlign: 'center',
     marginTop: '8%',
   },
   emptybox: {

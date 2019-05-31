@@ -3,7 +3,7 @@
     "Login_Screen_Greeting": "నమస్కారం",
     "Login_Screen_Question": "మీ ఫోన్ నెంబర్ ? ",
     "Login_Screen-Error_Not_Registered": "క్షమించండి, మీరు నమోదు కాబడలేదు !",
-    "Fishing_Sites_Title": "చేపల సమాచారము ?",
+    "Fishing_Sites_Title": "చేపల లభ్యత సమాచారం ?",
     "Forecast_Screen_Directions_North": "ఉత్తరం",
     "Forecast_Screen_Directions_South": "దక్షిణం",
     "Forecast_Screen_Directions_East": "తూర్పు",
@@ -51,5 +51,6 @@
     "Profession_Agri": "వ్యవసాయం",
     "Profession_Fishing": "చేపల వేట",
     "Profession_Livestocks": "పశు సంపద",
-    "Profession_Other": "యితరములు"
+    "Profession_Other": "యితరములు",
+    "Register_Name": "నీ పేరు ఏమిటి ?"
 }

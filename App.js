@@ -57,6 +57,7 @@ class LoginPage extends React.Component {
 
 
   async componentDidMount() {
+    this.setState({ loading: true });
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
     var labelText = await getObjectForKey('Login_Screen_Greeting');
     var noText = await getObjectForKey('Login_Screen_Question');
@@ -64,6 +65,7 @@ class LoginPage extends React.Component {
       hi_there: labelText,
       ask_phNo: noText,
     });
+    this.setState({ loading: false });
     try {
       //console.log("Label"+ JSON.stringify(sText));
       var lang = await AsyncStorage.getItem('DEFAULT_LANGUAGE');
@@ -283,9 +285,9 @@ const styles = StyleSheet.create({
     marginTop: 30,
     backgroundColor: '#fff',
     alignItems: 'center',
-    width: '75%',
+    width: '80%',
     alignSelf: 'center',
-    paddingRight: 5,
+    //paddingRight:5,
     paddingLeft: 10,
     paddingTop: 30,
     paddingBottom: 30,
@@ -295,11 +297,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: '20%',
   },
   input: {
     fontSize: 24,
-    width: '60%',
+    width: '70%',
     height: 30,
     marginLeft: 10,
   },
@@ -307,14 +308,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 3,
     justifyContent: 'center',
-    height: 50,
-    width: 50,
-    borderRadius: 50,
+    height: 60,
+    width: 60,
+    
+    borderRadius: 60,
 
   },
   submitImg: {
     width: 60,
     height: 60,
+    alignSelf:'center',
   },
   offlineContainer: {
     flex: 1,
