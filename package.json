@@ -9,6 +9,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "10.0.1",
+    "appcenter": "2.0.0",
+    "appcenter-analytics": "2.0.0",
+    "appcenter-crashes": "2.0.0",
     "axios": "^0.18.0",
     "expo": "^32.0.0",
     "expo-firebase-notifications": "^2.0.0",

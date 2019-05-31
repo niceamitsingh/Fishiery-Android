@@ -1,6 +1,7 @@
 # Built application files
 *.apk
 *.ap_
+*.aab
 
 # Files for the ART/Dalvik VM
 *.dex
@@ -16,8 +17,6 @@ out/
 # Gradle files
 .gradle/
 build/
-
-node_modules/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -45,8 +44,9 @@ captures/
 .idea/caches
 
 # Keystore files
-# Uncomment the following line if you do not want to check your keystore files in.
+# Uncomment the following lines if you do not want to check your keystore files in.
 #*.jks
+#*.keystore
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
@@ -66,14 +66,13 @@ fastlane/screenshots
 fastlane/test_output
 fastlane/readme.md
 
-
 node_modules/
 .expo/
 package-lock.json
 yarn.lock
 yarn-error.log
 .vscode/*
-node_modules/*/
+node_modules/**/*
 .expo/*
 npm-debug.*
 *.jks
@@ -81,11 +80,11 @@ npm-debug.*
 *.key
 *.mobileprovision
 # Xcode
-!*/.xcodeproj
-!*/.pbxproj
-!*/.xcworkspacedata
-!*/.xcsettings
-!*/.xcscheme
+!**/*.xcodeproj
+!**/*.pbxproj
+!**/*.xcworkspacedata
+!**/*.xcsettings
+!**/*.xcscheme
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -136,7 +135,7 @@ android/app/prodKernel/*
 
 
 # Node
-node_modules
+node_modules/
 *.log
 .nvm
 /bots/node_modules/
@@ -156,5 +155,6 @@ package-lock.json
 /*.xcodeproj
 
 # ReactCommon subdir shouldn't have Xcode project
-/ReactCommon/*/.xcodeproj
+/ReactCommon/**/*.xcodeproj
 RNTester/build
+package-lock.json
