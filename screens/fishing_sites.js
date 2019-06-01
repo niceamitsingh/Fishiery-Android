@@ -103,14 +103,12 @@ async apiCallForLandingSites() {
     // Error retrieving data
   }
   console.log(lat+ "    "  +lon);
-  //const lat ="8.0883";
-  //const lon ="77.5385";
   var coordinates = {
     "latitude": lat,
     "longitude": lon
   };
   var dataSource = await request("http://104.211.204.132/osf/engine/get_nearest_landing_centres/", coordinates);
-  console.log("Return Value: " + dataSource);
+  console.log("Return Value: " + JSON.stringify(dataSource));
   if(dataSource == "timeout of 60000ms exceeded") {
     Alert.alert('Please try after some time');
   } else {

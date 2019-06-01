@@ -36,14 +36,13 @@ function MiniOfflineSign() {
 var isHidden = true;
 var toValue;
 
-const alert_feedback = () => {
+const alert_feedback = (data) => {
     var response = request(
         APIConfig.Base_URL + APIConfig.User_Feedback,
         data
       );
     Alert.alert(acknowledgementText);
 }
-
 
 export default class forecast extends React.Component {
     constructor(props) {
@@ -95,8 +94,8 @@ export default class forecast extends React.Component {
         var state = "";
         var lat;
         var lon;
-        //const lat = this.state.latitude_site;
-        //const lon = this.state.longitude_site;
+        var selectedSite;
+        this.setState({ loading: true });
         try {
             lat = await AsyncStorage.getItem('DEFAULT_LAT');
             lon = await AsyncStorage.getItem('DEFAULT_LONG');
@@ -109,14 +108,16 @@ export default class forecast extends React.Component {
             "longitude": lon
         };
         var dataSource = await request("http://104.211.204.132/osf/engine/get_nearest_landing_centres/", coordinates);
-        console.log("Return Value: " + dataSource);
         if (dataSource == "timeout of 60000ms exceeded") {
             Alert.alert('Please try after some time');
         } else {
             selected_site_array = dataSource[0];
+            selectedSite = dataSource[0].landing_centre;
             state = dataSource[0].state;
             site_id = dataSource[0].landing_centre_ID;
         }
+        console.log(" ");
+        console.log("SelectedCityArray : "+ JSON.stringify(selected_site_array));
         var received_site = navigation.getParam('Selected_Site');
         var received_state = navigation.getParam('Selected_State');
         if (received_site !== null) {
@@ -124,10 +125,46 @@ export default class forecast extends React.Component {
             site_id = received_site.landing_centre_ID;
             state = received_state;
         }
+        console.log('Selected city: '+ JSON.stringify(selected_site_array[0]));
         console.log("slected state reached: " + state);
-        const number_fish_sites = landing_sites_array.length;
+        const number_fish_sites = dataSource.length;
         this.setState({ selected_site: selected_site_array, landing_sites: dataSource, number_sites: number_fish_sites, selected_state: state, landing_centre_ID:site_id});
-        this.apiCallForForecast();
+        await this.apiCallForForecast(selected_site_array[0].landing_centre,state);
+        this.setState({ loading: true });
+        for (i = 0; i < this.state.number_sites; i++) {
+            if (this.state.selected_site[0].landing_centre == this.state.landing_sites[i].landing_centre) {
+                this.state.cityCenterCount = i;
+                break;
+            }
+        }
+        //await this.apiCallForForecast(this.state.selected_site.landing_centre, this.state.selected_state);
+        var labelForecast = await getObjectForKey('Forecast_OSF_Title');
+        var labelCaution = await getObjectForKey('Forecast_State_Caution');
+        var labelPlaying = await getObjectForKey('Forecast_Audio_playing');
+        var labelCurrent = await getObjectForKey('Forecast_Component_Current');
+        var labelWave = await getObjectForKey('Forecast_Component_Wave');
+        var labelWind = await getObjectForKey('Forecast_Component_Wind');
+        var labelHelpful = await getObjectForKey('Forecast_User_Review_Title');
+        var labelSafe = await getObjectForKey('Forecast_State_Safe');
+        var labelDanger = await getObjectForKey('Forecast_State_Danger');
+
+        this.setState({
+            cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
+            leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
+            cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].landing_centre,
+            rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].distance_km,
+            cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
+            dangerTag: labelDanger,
+            safeTag: labelSafe,
+            forecastTag: labelForecast,
+            cautionTag: labelCaution,
+            playingTag: labelPlaying,
+            currentTag: labelCurrent,
+            waveTag: labelWave,
+            windTag: labelWind,
+            reviewTag: labelHelpful,
+        });
+        this.setState({ loading: false });
     }
 
     async apiCallForForecast(currentCity, currentState) {
@@ -168,47 +205,10 @@ export default class forecast extends React.Component {
             cond
         );
         this.setState({ loading: false });
-        console.log("Loading state: " + this.state.loading);
     }
 
     async  componentDidMount() {
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
-        this.setState({ loading: true });
-        for (i = 0; i < this.state.number_sites; i++) {
-            if (this.state.selected_site[0].landing_centre == this.state.landing_sites[i].landing_centre) {
-                this.state.cityCenterCount = i;
-                break;
-            }
-        }
-        await this.apiCallForForecast(this.state.selected_site[0].landing_centre, this.state.selected_state);
-        this.setState({ loading: true });
-        var labelForecast = await getObjectForKey('Forecast_OSF_Title');
-        var labelCaution = await getObjectForKey('Forecast_State_Caution');
-        var labelPlaying = await getObjectForKey('Forecast_Audio_playing');
-        var labelCurrent = await getObjectForKey('Forecast_Component_Current');
-        var labelWave = await getObjectForKey('Forecast_Component_Wave');
-        var labelWind = await getObjectForKey('Forecast_Component_Wind');
-        var labelHelpful = await getObjectForKey('Forecast_User_Review_Title');
-        var labelSafe = await getObjectForKey('Forecast_State_Safe');
-        var labelDanger = await getObjectForKey('Forecast_State_Danger');
-
-        this.setState({
-            cityLeft: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].landing_centre,
-            leftCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites - 1)) % this.state.number_sites].distance_km,
-            cityRight: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].landing_centre,
-            rightCityDistance: this.state.landing_sites[(this.state.cityCenterCount + (this.state.number_sites + 1)) % this.state.number_sites].distance_km,
-            cityCenter: this.state.landing_sites[this.state.cityCenterCount].landing_centre,
-            dangerTag: labelDanger,
-            safeTag: labelSafe,
-            forecastTag: labelForecast,
-            cautionTag: labelCaution,
-            playingTag: labelPlaying,
-            currentTag: labelCurrent,
-            waveTag: labelWave,
-            windTag: labelWind,
-            reviewTag: labelHelpful,
-        });
-        this.setState({ loading: false });
     }
     componentWillUnmount() {
         NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
@@ -762,7 +762,7 @@ export default class forecast extends React.Component {
     userReviewInput() {
         return (
             <View style={styles.reviewUserFlex}>
-                <TouchableOpacity style={styles.iconNotUseful} onPress={alert_feedback(0)}>
+                <TouchableOpacity style={styles.iconNotUseful} onPress={() => alert_feedback(0)}>
                     <Image style={styles.reviewIcon}
                         source={require('../assets/images/unsatisfied.png')}
                     />
@@ -773,7 +773,7 @@ export default class forecast extends React.Component {
     }
     iconSatisfied() {
         return (
-            <TouchableOpacity style={styles.iconUseful} onPress={alert_feedback(5)}>
+            <TouchableOpacity style={styles.iconUseful} onPress={() => alert_feedback(5)}>
                 <Image style={styles.reviewIcon}
                     source={require('../assets/images/satisfied.png')}
                 />
