@@ -1,14 +1,19 @@
 import React from 'react';
-import { StyleSheet, Alert, AppRegistry, Text, TextInput, View, Dimensions, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, NetInfo } from 'react-native';
+import { StyleSheet, Alert, AppRegistry, Text, TextInput, View, Dimensions, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, NetInfo, AsyncStorage } from 'react-native';
 import { Constants } from 'expo';
 import site from './screens/fishing_sites';
 import playSound from './screens/play_sound';
 import forecast from './screens/forecast';
 import soundTest from './screens/soundTest';
+import askName from './screens/name_ask';
+import askLanguage from './screens/language_ask';
+import regis_success from './screens/registeration_success';
+import make_call from './screens/make.call';
+
 import request from './components/util/apirequest';
 import APIConfig from './components/config/APIconfig';
 import Loader from './components/util/loader';
-import getObjectForKey  from './components/util/title.localization';
+import getObjectForKey from './components/util/title.localization';
 import {
   widthPercentageToDP,
   heightPercentageToDP,
@@ -24,12 +29,12 @@ function MiniOfflineSign() {
     <View style={styles.offlineContainer}>
       <View style={styles.offlineNotification}>
         <Text style={styles.offlineText}>No Internet Connection</Text>
-        </View>
-        <View style={styles.offlineIconContainer}>
-          <Image style={styles.offlineIcon}
-            source={require('./assets/images/no_connection.png')}
-          />
-        </View>
+      </View>
+      <View style={styles.offlineIconContainer}>
+        <Image style={styles.offlineIcon}
+          source={require('./assets/images/no_connection.png')}
+        />
+      </View>
     </View>
   );
 }
@@ -45,25 +50,33 @@ class LoginPage extends React.Component {
       isConnected: true,
       TextInputNumber: '',
       loading: false,
-      app_name:'',
-      hi_there:'',
-      ask_phNo:'',
+      app_name: '',
+      hi_there: '',
+      ask_phNo: '',
     }
   }
 
- 
- async componentDidMount() {
+
+  async componentDidMount() {
+    this.setState({ loading: true });
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
     var labelText = await getObjectForKey('Login_Screen_Greeting');
     var noText = await getObjectForKey('Login_Screen_Question');
     this.setState({
-      hi_there:labelText,
-      ask_phNo:noText,
+      hi_there: labelText,
+      ask_phNo: noText,
     });
-    //console.log("Label"+ JSON.stringify(sText));
+    this.setState({ loading: false });
+    try {
+      //console.log("Label"+ JSON.stringify(sText));
+      var lang = await AsyncStorage.getItem('DEFAULT_LANGUAGE');
+    } catch (error) {
+      // Error retrieving data
+    }
+    console.log("Language is: " + lang);
   }
 
-  componentWillUnmount() {
+  async componentWillUnmount() {
     NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
   }
 
@@ -89,6 +102,10 @@ class LoginPage extends React.Component {
       Alert.alert("Please Enter a Valid 10 digit Number.");
     }
     else {
+      AsyncStorage.setItem(
+        "DEFAULT_NUMBER",
+        this.state.TextInputNumber
+      );
       this.checkUser(this.state.TextInputNumber);
     }
   };
@@ -97,18 +114,36 @@ class LoginPage extends React.Component {
     this.setState({ loading: true });
     console.log(TextInputNumber);
     var data = {
-      "phone": TextInputNumber,
+        "phone": TextInputNumber
     }; console.log("Request Body: " + JSON.stringify(data));
     var response = await request(
-      APIConfig.Base_URL + APIConfig.Get_User_Profiles_API.urlPath,
-      data
+      APIConfig.Base_URL + APIConfig.Get_User_Profiles_API.urlPath,data
     );
-    console.log(JSON.stringify(response));
-    if (response['users'].length == 0) {
+    console.log("API response:" +JSON.stringify(response));
+    //if (response['users'].length == 0) {
+      if (response.length == 0) {
+
       this.setState({ loading: false });
-      Alert.alert("You are not registered !");
+      Alert.alert(
+        'New to Machli ?',
+        "Your number dosen't seem to be registered with us. Do you want to Register ?",
+        [
+          { text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel' },
+          {
+            text: 'Yes', onPress: () => {
+              console.log('OK Pressed');
+              this.props.navigation.navigate("register_askName");
+            }
+          },
+        ],
+        { cancelable: true }
+      )
     }
     else {
+      AsyncStorage.setItem(
+        "IS_USER_LOGGED_IN",
+       JSON.stringify(true)
+      );
       this.setState({ loading: false });
       this.props.navigation.navigate("fishing_site");
     }
@@ -123,9 +158,9 @@ class LoginPage extends React.Component {
     else {
       return (
         <View style={{ justifyContent: 'center', height: DEVICE_HEIGHT }}>
-        <Text style={styles.styleForVersionNumber}>
-          v{Constants.manifest.version}
-        </Text>
+          <Text style={styles.styleForVersionNumber}>
+            v{Constants.manifest.version}
+          </Text>
           {this.keyboardAvoid()}
           <Loader loading={this.state.loading} />
         </View>
@@ -153,7 +188,7 @@ class LoginPage extends React.Component {
         {this.headerTextHi()}
         <Text style={styles.phNo}>
           {this.state.ask_phNo}
-                </Text>
+        </Text>
       </View>
     );
   }
@@ -171,8 +206,8 @@ class LoginPage extends React.Component {
   headerTextHi() {
     return (
       <Text style={styles.welcome}>
-      {this.state.hi_there}
-            </Text>
+        {this.state.hi_there}
+      </Text>
     );
   }
   inputBar() {
@@ -192,6 +227,7 @@ class LoginPage extends React.Component {
 
 
 import { createStackNavigator, createAppContainer } from 'react-navigation';
+import { launchImageLibraryAsync } from 'expo/build/ImagePicker/ImagePicker';
 const RootStack = createStackNavigator(
   {
     login_page: LoginPage,
@@ -199,9 +235,13 @@ const RootStack = createStackNavigator(
     forcastAudio: playSound,
     page_forecast: forecast,
     sound: soundTest,
+    register_askName: askName,
+    register_askLanguage: askLanguage,
+    reg_success: regis_success,
+    call_rfs: make_call,
   },
   {
-    initialRouteName: 'login_page',
+    initialRouteName: 'register_askLanguage',
   }
   , { headerMode: 'none' }
 );
@@ -247,9 +287,9 @@ const styles = StyleSheet.create({
     marginTop: 30,
     backgroundColor: '#fff',
     alignItems: 'center',
-    width: '75%',
+    width: '80%',
     alignSelf: 'center',
-    paddingRight: 5,
+    //paddingRight:5,
     paddingLeft: 10,
     paddingTop: 30,
     paddingBottom: 30,
@@ -259,11 +299,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: '20%',
   },
   input: {
     fontSize: 24,
-    width: '60%',
+    width: '70%',
     height: 30,
     marginLeft: 10,
   },
@@ -271,17 +310,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 3,
     justifyContent: 'center',
-    height: 50,
-    width: 50,
-    borderRadius: 50,
+    height: 60,
+    width: 60,
+    
+    borderRadius: 60,
 
   },
   submitImg: {
     width: 60,
     height: 60,
+    alignSelf:'center',
   },
-  offlineContainer:{
-    flex:1,
+  offlineContainer: {
+    flex: 1,
   },
   offlineNotification: {
     backgroundColor: '#b52424',
@@ -291,19 +332,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: DEVICE_WIDTH,
     position: 'absolute',
-    bottom:10
+    bottom: 10
   },
-  offlineText: { 
+  offlineText: {
     color: '#fff',
-    fontSize:16,
-   },
-   offlineIconContainer:{
-     height:'90%',
-     width:DEVICE_WIDTH,
-     alignItems:'center',
-     justifyContent:'center',
-   },
-   offlineIcon: {
+    fontSize: 16,
+  },
+  offlineIconContainer: {
+    height: '90%',
+    width: DEVICE_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offlineIcon: {
     width: 180,
     height: 182,
   },
@@ -316,10 +357,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontStyle: 'normal',
     lineHeight: 19,
-    bottom:0,
+    bottom: 0,
     letterSpacing: 0.64,
     textAlign: 'right',
     color: '#000000',
-    right:10,
+    right: 10,
   },
 });

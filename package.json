@@ -8,12 +8,15 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo/vector-icons": "10.0.1",
     "axios": "^0.18.0",
     "expo": "^32.0.0",
     "expo-firebase-notifications": "^2.0.0",
     "react": "16.5.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-32.0.0.tar.gz",
+    "react-native-elements": "^1.1.0",
     "react-native-phone-call": "^1.0.9",
+    "react-native-play-audio": "^0.1.2",
     "react-native-responsive-screen": "^1.2.2",
     "react-native-sound": "^0.10.12",
     "react-native-swipe-gestures": "^1.0.3",

@@ -11,13 +11,13 @@
     "slug": "Fisher_1",
     "privacy": "public",
     "sdkVersion": "32.0.0",
-      "ios":{
-      "bundleIdentifier": "com.guru.machli"
+    "ios": {
+      "supportsTablet": true
     },
-      "android": {
-        "package": "com.guru.machli"
+    "android": {
+      "package": "com.guru.machli"
     },
-    "version": "1.0.6",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -33,8 +33,10 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true
-    }
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "description": ""
   }
 }

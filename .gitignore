@@ -13,6 +13,16 @@ bin/
 gen/
 out/
 
+node_modules/
+.expo/
+package-lock.json
+yarn.lock
+yarn-error.log
+.vscode/
+npm-debug.*/
+Android/.idea/
+ios/Pods/
+
 # Gradle files
 .gradle/
 build/
