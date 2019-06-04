@@ -1,15 +1,16 @@
 {
     "App_Name": "మచిలీ",
-    "Login_Screen_Greeting": "మీరు ఉన్నారా ",
+    "Login_Screen_Greeting": "నమస్కారం",
     "Login_Screen_Question": "మీ ఫోన్ నెంబర్ ? ",
     "Login_Screen-Error_Not_Registered": "క్షమించండి, మీరు నమోదు కాబడలేదు !",
-    "Fishing_Sites_Title": "చేపల సమాచారము ?",
+    "Fishing_Sites_Title": "చేపల లభ్యత సమాచారం ?",
     "Forecast_Screen_Directions_North": "ఉత్తరం",
     "Forecast_Screen_Directions_South": "దక్షిణం",
     "Forecast_Screen_Directions_East": "తూర్పు",
     "Forecast_Screen_Directions_West": "పడమర",
     "Forecast_OSF_Title": "సమాచారము",
     "Forecast_State_Caution": "చూచనలు",
+    "Forecast_State_Danger": "ప్రమాదం",
     "Forecast_Audio_playing": "ఆడియో వినండి",
     "Forecast_State_Safe": "సురక్సితమైన",
     "Forecast_Component_Current": "వడి",
@@ -30,6 +31,7 @@
     "Forecast_Month_October": "అక్టోబర్",
     "Forecast_Month_November": "నవంబర్",
     "Forecast_Month_December": "డిసెంబర్",
+    "Forecast_Feedback": "మీ అభిప్రాయానికి ధన్యవాదాలు !",
     "Warning_No_Internet": "ఇంటర్నెట్ కనెక్షన్ లేదు",
     "Warning_No_Connection": "మీ ఇంటర్నెట్ కనెక్షన్ చెక్ చేసుకోండి",
     "Mobile_Number_Error": "మీ ఫోన్ నెంబర్ సరియైనది కాదు",
@@ -50,5 +52,6 @@
     "Profession_Agri": "వ్యవసాయం",
     "Profession_Fishing": "చేపల వేట",
     "Profession_Livestocks": "పశు సంపద",
-    "Profession_Other": "యితరములు"
+    "Profession_Other": "యితరములు",
+    "Register_Name": "నీ పేరు ఏమిటి ?"
 }

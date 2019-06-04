@@ -1,8 +1,9 @@
 {
     "App_Name": "Machli",
     "Login_Screen_Greeting": "Hi there",
+    "Login_Screen_Question": "What's your phone number ?",
     "Login_Screen-Error_Not_Registered": "Sorry, you are not registered !",
-    "Fishing_Sites_Title": "Where do you fish ?",
+    "Fishing_Sites_Title": "Where do you fish ?  ",
     "Forecast_Screen_Directions_North": "North",
     "Forecast_Screen_Directions_South": "South",
     "Forecast_Screen_Directions_East": "East",
@@ -29,6 +30,7 @@
     "Forecast_Month_October": "October",
     "Forecast_Month_November": "November",
     "Forecast_Month_December": "December",
+    "Forecast_Feedback": "Thanks for your feedback !",
     "Warning_No_Internet": "No internet connection",
     "Warning_No_Connection": "Please check your internet connection",
     "Mobile_Number_Error": "Mobile number is not correct.",
@@ -49,5 +51,6 @@
     "Profession_Agri": "Agriculture",
     "Profession_Fishing": "Fishing",
     "Profession_Livestocks": "Livestock",
-    "Profession_Other": "Other"
+    "Profession_Other": "Other",
+    "Register_Name": "Whats your name ?"
 }

@@ -1,7 +1,24 @@
 {
-    "Base_URL": "http://knowledgegrapg.jio.ril.com/api",
+    "Base_URL": "http://guru.southindia.cloudapp.azure.com:8001",
+    "OSF_Base_API":"http://guru.southindia.cloudapp.azure.com:8005",
     "Get_User_Profiles_API": {
-        "urlPath": "/guru/user/get/profile",
+        "urlPath": "/users/get/",
         "method": "POST"
+    },
+    "New_User_Registration":{
+        "urlPath": "/users/create/",
+        "method": "POST"
+    },
+    "User_Feedback":{
+        "urlPath": "/query/post/feedback/",
+        "method": "POST"
+    },
+    "Get_OSF":{
+        "urlPath":"/engine/get_osf/",
+        "method":"POST"
+    },
+    "Get_Landing_Site":{
+        "urlPath":"/engine/get_nearest_landing_centres/",
+        "method":"POST"
     }
 }
