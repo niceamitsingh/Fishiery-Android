@@ -46,7 +46,7 @@ export default class main extends React.Component {
         try {
             //console.log("Label"+ JSON.stringify(sText));
             state = await AsyncStorage.getItem('IS_USER_LOGGED_IN');
-            if (state == 'true'){
+            if (state == 'false'){
               console.log(state);
               this.props.navigation.navigate("page_forecast");
             }

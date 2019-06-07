@@ -52,5 +52,7 @@
     "Profession_Fishing": "Fishing",
     "Profession_Livestocks": "Livestock",
     "Profession_Other": "Other",
-    "Register_Name": "Whats your name ?"
+    "Register_Name": "Whats your name ?",
+    "Register_New_text": "New to machli ?",
+    "Register_text":"Your number dosen't seem to be registered with us. Do you want to register ?"
 }
