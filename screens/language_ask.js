@@ -59,9 +59,9 @@ export default class main extends React.Component {
 
     async apiCallForLandingSites() {
         var dataSource =
-        [{
+        [/*{
                "language": "English",
-           },
+           },*/
            {
                "language": "తెలుగు",
            },
@@ -135,7 +135,7 @@ export default class main extends React.Component {
                 data={this.state.dataSource}
                 renderItem={(item) => this.renderItem(item)}
                 extraData={this.state}
-                numColumns={3}
+                numColumns={2}
                 backgroundColor="#fff"
                 //keyExtractor={"landing_centre_ID"}
                 keyExtractor={(item, index) => item.language}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
 
     list: {
         justifyContent: 'center',
-        flex: 0.333,
+        flex: 0.5,
         alignItems: 'center',
         height: 100,
         width: widthPercentageToDP("30%"),
