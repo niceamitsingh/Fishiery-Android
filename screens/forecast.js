@@ -13,15 +13,15 @@ import {
   AsyncStorage
 } from "react-native";
 import { Audio } from "expo";
-import call from "react-native-phone-call";
 import Loader from "../components/util/loader";
 import request from "../components/util/apirequest";
 import APIConfig from "../components/config/APIconfig";
-import GestureRecognizer, {
-  swipeDirections
-} from "react-native-swipe-gestures";
 import getObjectForKey from "../components/util/title.localization";
-import AudioPlayer from 'react-native-play-audio';
+import {
+  widthPercentageToDP,
+  heightPercentageToDP,
+} from 'react-native-responsive-screen';
+import { LinearGradient } from 'expo'
 
 var source = {
   uri: "",
@@ -58,25 +58,21 @@ export default class forecast extends React.Component {
       showComponmentB: false, //This is the initial position of the subview
       playingStatus: "nosound",
       isConnected: true,
-      gestureName: "none",
       loading: false,
       isSafe: false,
-      currentVal: "12-4km/hr",
+      currentMinVal: "4",
+      currentMaxVal: "12",
       currentDir: "NNW",
-      waveVal: "9-4ft",
+      waveMinVal: "4",
+      waveMaxVal: "9",
       waveDir: "NN",
-      windVal: "50-31 km/hr",
+      windMinVal: "31",
+      windMaxVal: "50",
       windDir: "NNE",
       textInfo: "something something",
       date: "14th May, 2019",
       selected_site: [],
       selected_state: "",
-      landing_sites: [],
-      number_sites: [],
-      site_all: [],
-      cityCenterCount: 0,
-      leftCityDistance: 0,
-      rightCityDistance: 0,
       forecastTag: "",
       cautionTag: "",
       playingTag: "",
@@ -90,15 +86,15 @@ export default class forecast extends React.Component {
       fishingStateFlag: "",
       osf_landing_site: [],
       feedbackTag: '',
+      changeSiteTag:'',
+      checkValueColor: ''
     };
   }
 
   async componentWillMount() {
     console.log("Reached forecast");
     const { navigation } = this.props;
-    var site_id = "";
-    var selected_site_array = [];
-    var state = "";
+    var selected_Landing_Site = [];
     var lat;
     var lon;
     this.setState({ loading: true });
@@ -110,46 +106,33 @@ export default class forecast extends React.Component {
     }
     console.log(lat + "   " + lon);
     var coordinates = {
-      latitude: lat,
-      longitude: lon
+      //latitude: lat,
+      //longitude: lon
+      latitude: 17.3850,
+      longitude: 78.4867
     };
     var dataSource = await request(
-    //  "http://104.211.204.132/osf/engine/get_nearest_landing_centres/",
-    APIConfig.OSF_Base_API+APIConfig.Get_Landing_Site.urlPath,
+      APIConfig.OSF_Base_API + APIConfig.Get_Landing_Site.urlPath,
       coordinates
     );
+    console.log("Datasource: " + dataSource);
     if (dataSource == "timeout of 60000ms exceeded") {
       Alert.alert("Please try after some time");
     } else {
-      selected_site_array = dataSource[0];
-      state = dataSource[0].state;
+      //TODO: Need to load the previous selected site --- not nearest
+      selected_Landing_Site = dataSource[0];
     }
     var received_site = navigation.getParam("Selected_Site");
-    var received_state = navigation.getParam("Selected_State");
     if (received_site != null) {
-      selected_site_array = received_site;
-      state = received_state;
+      selected_Landing_Site = received_site;
     }
-    console.log("selected_site_array: "+selected_site_array);
-    console.log("selected state: "+state);
-    const number_fish_sites = dataSource.length;
+    console.log("selected_Landing_Site: " + selected_Landing_Site);
     this.setState({
-      selected_site: selected_site_array,
-      landing_sites: dataSource,
-      number_sites: number_fish_sites,
-      selected_state: state,
+      selected_site: selected_Landing_Site,
     });
-    await this.apiCallForForecast(selected_site_array.landing_centre, state);
+    await this.apiCallForForecast(selected_Landing_Site.landing_centre, selected_Landing_Site.state);
     this.setState({ loading: true });
-    for (i = 0; i < this.state.number_sites; i++) {
-      if (
-        this.state.selected_site.landing_centre ==
-        this.state.landing_sites[i].landing_centre
-      ) {
-        this.state.cityCenterCount = i;
-        break;
-      }
-    }
+
     //await this.apiCallForForecast(this.state.selected_site.landing_centre, this.state.selected_state);
     var labelForecast = await getObjectForKey("Forecast_OSF_Title");
     var labelCaution = await getObjectForKey("Forecast_State_Caution");
@@ -161,26 +144,10 @@ export default class forecast extends React.Component {
     var labelSafe = await getObjectForKey("Forecast_State_Safe");
     var labelDanger = await getObjectForKey("Forecast_State_Danger");
     var labelFeedback = await getObjectForKey("Forecast_Feedback");
+    var LabelChangeSite = await getObjectForKey("Forecast_Tap_To_Change");
 
     this.setState({
-      cityLeft: this.state.landing_sites[
-        (this.state.cityCenterCount + (this.state.number_sites - 1)) %
-        this.state.number_sites
-      ].landing_centre_regional,
-      leftCityDistance: this.state.landing_sites[
-        (this.state.cityCenterCount + (this.state.number_sites - 1)) %
-        this.state.number_sites
-      ].distance_km,
-      cityRight: this.state.landing_sites[
-        (this.state.cityCenterCount + (this.state.number_sites + 1)) %
-        this.state.number_sites
-      ].landing_centre_regional,
-      rightCityDistance: this.state.landing_sites[
-        (this.state.cityCenterCount + (this.state.number_sites + 1)) %
-        this.state.number_sites
-      ].distance_km,
-      cityCenter: this.state.landing_sites[this.state.cityCenterCount]
-        .landing_centre_regional,
+      cityCenter: selected_Landing_Site.landing_centre,
       dangerTag: labelDanger,
       safeTag: labelSafe,
       forecastTag: labelForecast,
@@ -191,19 +158,19 @@ export default class forecast extends React.Component {
       windTag: labelWind,
       reviewTag: labelHelpful,
       feedbackTag: labelFeedback,
+      changeSiteTag: LabelChangeSite,
     });
     this.setState({ loading: false });
   }
 
   async apiCallForForecast(currentCity, currentState) {
-    //this.state.loading = true;
     var lang;
     try {
-      //console.log("Label"+ JSON.stringify(sText));
       lang = await AsyncStorage.getItem("DEFAULT_LANGUAGE");
     } catch (error) {
       // Error retrieving data
     }
+    this.setState({ loading: false });
     console.log("Language is: " + lang);
     console.log("Enquired city:" + currentCity);
     console.log("Enquired state:" + currentState);
@@ -214,31 +181,20 @@ export default class forecast extends React.Component {
     };
     console.log("Request Body: " + JSON.stringify(data));
     response = await request(
-      APIConfig.OSF_Base_API+APIConfig.Get_OSF.urlPath,
+      APIConfig.OSF_Base_API + APIConfig.Get_OSF.urlPath,
       data
     );
     console.log("Data: " + JSON.stringify(response));
-    this.state.osf_landing_site = response;
     var cond = response.data[0].flag;
     console.log("Condition is: " + cond);
-    console.log("Condition in state: " + this.state.centerState);
-    this.state.currentVal =
-      response.data[0].min_current_speed_kmph +
-      "-" +
-      response.data[0].max_current_speed_kmph +
-      " km/hr";
+    this.state.currentMinVal = response.data[0].min_current_speed_kmph;
+    this.state.currentMaxVal = response.data[0].max_current_speed_kmph;
     this.state.currentDir = response.data[0].current_direction;
-    this.state.waveVal =
-      response.data[0].min_wave_height_feet +
-      "-" +
-      response.data[0].max_wave_height_feet +
-      " ft";
+    this.state.waveMinVal = response.data[0].min_wave_height_feet;
+    this.state.waveMaxVal = response.data[0].max_wave_height_feet;
     this.state.waveDir = response.data[0].wave_direction;
-    this.state.windVal =
-      response.data[0].min_wind_speed_kmph +
-      "-" +
-      response.data[0].max_wind_speed_kmph +
-      " km/hr";
+    this.state.windMinVal = response.data[0].min_wind_speed_kmph;
+    this.state.windMaxVal = response.data[0].max_wind_speed_kmph;
     this.state.windDir = response.data[0].wind_direction;
     this.state.fishingState = cond;
     this.state.textInfo = response.text;
@@ -266,14 +222,14 @@ export default class forecast extends React.Component {
     var dataSource = request(
       APIConfig.Base_URL + APIConfig.User_Feedback.urlPath,
       {
-          response_id: siteID,
-          feedback: feedback_point
+        response_id: siteID,
+        feedback: feedback_point
       }
     );
     if (dataSource == "timeout of 60000ms exceeded") {
       Alert.alert("Please try after some time");
     }
-    console.log("Feedback Response: "+ dataSource);
+    console.log("Feedback Response: " + dataSource);
   };
 
   handleConnectivityChange = isConnected => {
@@ -298,9 +254,6 @@ export default class forecast extends React.Component {
     _toggleShow = () => {
       this.setState({ showComponmentB: !this.state.showComponmentB });
     };
-
-    //This will animate the transalteY of the subview between 0 & 100 depending on its current state
-    //100 comes from the style below, which is the height of the subview.
     Animated.spring(this.state.bounceValue, {
       toValue: toValue,
       velocity: 3,
@@ -317,96 +270,30 @@ export default class forecast extends React.Component {
 
 
   async _playRecording() {
-    source.uri= this.state.osf_landing_site["audio"];
-    if(source.uri === "") {
+    source.uri = this.state.selected_site["audio"];
+    if (source.uri === "") {
       this.setState({ loading: false });
       Alert.alert("Audio is not available.");
-    } 
-    else 
-    {
-      var { sound }  = await Audio.Sound.create(
+    }
+    else {
+      var { sound } = await Audio.Sound.create(
         source,
         {
-            shouldPlay: true,
-            isLooping: true,
+          shouldPlay: true,
+          isLooping: false,
         },
         this._updateScreenForSoundStatus,
-    );
-    
-    this.setState({ loading: false });
-    this.sound = sound;
-    this.setState({
+      );
+
+      this.setState({ loading: false });
+      this.sound = sound;
+      this.setState({
         isPlaying: 'true'
-    });
-  }
-}
-
-_updateScreenForSoundStatus = (status) => {
-    if (status.isPlaying && this.state.playingStatus !== "playing") {
-        this.setState({ playingStatus: "playing" });
-    } else if (!status.isPlaying && this.state.playingStatus === "playing") {
-        this.setState({ playingStatus: "donepause" });
+      });
     }
-};
-
-async _pauseAndPlayRecording() {
-    if (this.sound != null) {
-        if (this.state.playingStatus == 'playing') {
-            this.setState({
-                playingStatus: 'donepause',
-                isPlaying: false,
-            });
-            console.log('pausing...');
-            await this.sound.pauseAsync();
-            console.log('paused!');
-        } else {
-            console.log('playing...');
-            this.setState({
-                playingStatus: 'playing',
-                isPlaying: true
-            });
-            await this.sound.playAsync();
-            console.log('playing!');
-        }
-
-    }
-}
-
-_syncPauseAndPlayRecording() {
-    if (this.sound != null) {
-        if (this.state.playingStatus == 'playing') {
-            this.sound.pauseAsync();
-        } else {
-            this.sound.playAsync();
-        }
-    }
-}
-
-_playAndPause = () => {
-    switch (this.state.playingStatus) {
-        case 'nosound':
-        this.setState({ loading: true });
-                this._playRecording();
-            break;
-        case 'donepause':
-        case 'playing':
-            this._pauseAndPlayRecording();
-            break;
-    }
-}
-
-
-
-
-
-  /*async _playRecording() {
-    var audioFileURL = this.state.osf_landing_site["audio"];
-    console.log("Audio File: "+audioFileURL);
-   // var source = {uri: "https://s3.amazonaws.com/exp-us-standard/audio/playlist-example/Comfort_Fit_-_03_-_Sorry.mp3"};
-    await this.playAudio(audioFileURL);
   }
 
-  _updateScreenForSoundStatus = status => {
+  _updateScreenForSoundStatus = (status) => {
     if (status.isPlaying && this.state.playingStatus !== "playing") {
       this.setState({ playingStatus: "playing" });
     } else if (!status.isPlaying && this.state.playingStatus === "playing") {
@@ -414,70 +301,32 @@ _playAndPause = () => {
     }
   };
 
-  async playAudio(audioFileURL) {
-  /*  if (source === "") {
-      this.setState({ loading: false });
-      Alert.alert("Audio is not available.");
-    }
-    else {
-      const { sound } = await Audio.Sound.create(source, {
-        shouldPlay: true,
-        isLooping: true
-      }, this._updateScreenForSoundStatus);
-      this.setState({ loading: false });
-      this.sound = sound;
-      this.setState({
-        isPlaying: "true"
-      });
-    }
-    
-    AudioPlayer.onEnd(() => {
-      console.log('on end');
-    });
-     
-    const url = 'http://guru.southindia.cloudapp.azure.com/OSF_Telugu_8135533983215295611.wav'; 
-    AudioPlayer.prepare(url, () => {
-      AudioPlayer.play();
-        
-      AudioPlayer.getDuration((duration) => {
-        console.log(duration);
-      });
-      setInterval(() => {
-        AudioPlayer.getCurrentTime((currentTime) => {
-          console.log(currentTime);
-        });
-      }, 1000);
-      AudioPlayer.stop();
-      AudioPlayer.pause();
-      AudioPlayer.setCurrentTime(50.5);
-    })
-  }
-
   async _pauseAndPlayRecording() {
     if (this.sound != null) {
-      if (this.state.playingStatus == "playing") {
+      if (this.state.playingStatus == 'playing') {
         this.setState({
-          playingStatus: "donepause",
-          isPlaying: false
+          playingStatus: 'donepause',
+          isPlaying: false,
         });
-        console.log("pausing...");
+        console.log('pausing...');
         await this.sound.pauseAsync();
-        console.log("paused!");
+        console.log('paused!');
       } else {
-        console.log("playing...");
+        console.log('playing...');
         this.setState({
-          playingStatus: "playing",
+          playingStatus: 'playing',
           isPlaying: true
         });
         await this.sound.playAsync();
-        console.log("playing!");
+        console.log('playing!');
       }
+
     }
   }
 
   _syncPauseAndPlayRecording() {
     if (this.sound != null) {
-      if (this.state.playingStatus == "playing") {
+      if (this.state.playingStatus == 'playing') {
         this.sound.pauseAsync();
       } else {
         this.sound.playAsync();
@@ -487,16 +336,19 @@ _playAndPause = () => {
 
   _playAndPause = () => {
     switch (this.state.playingStatus) {
-      case "nosound":
+      case 'nosound':
         this.setState({ loading: true });
         this._playRecording();
         break;
-      case "donepause":
-      case "playing":
+      case 'donepause':
+      case 'playing':
         this._pauseAndPlayRecording();
         break;
     }
-  };*/
+  }
+
+
+
 
   toggle_forecast = () => {
     return this.state.isPlaying ? (
@@ -504,111 +356,53 @@ _playAndPause = () => {
     ) : (
         <View>
           <Text style={styles.textForcast}>{this.state.forecastTag}</Text>
+          <Text style={styles.date}>{this.state.date}</Text>
         </View>
       );
   };
 
   toggle_image = () => {
-    return this.state.isPlaying ? (
-      <Image
-        style={styles.playImg}
-        source={require("../assets/images/pause.png")}
-      />
-    ) : (
+    if (this.state.isPlaying) {
+      return (
+        <Image
+          style={styles.playImg}
+          source={require("../assets/images/pause.png")}
+        />
+      );
+    }
+    else {
+      return (this.displayPlayIcon());
+    }
+  };
+  displayPlayIcon() {
+    cond = this.state.fishingState;
+    console.log("State:    " + cond);
+    if (cond == "Safe") {
+      return (
         <Image
           style={styles.playImg}
           source={require("../assets/images/play_green.png")}
         />
       );
-  };
-
-  onSwipeUp() {
-    this.setState({ myText: "You swiped up!" });
-  }
-
-  onSwipeDown() {
-    this.setState({ myText: "You swiped down!" });
-  }
-
-  async onSwipeLeft() {
-    var currentCount = this.state.cityCenterCount;
-    currentCount = (currentCount + 1) % this.state.number_sites;
-    this.setState({
-      cityLeft: this.state.landing_sites[
-        (currentCount + (this.state.number_sites - 1)) % this.state.number_sites
-      ].landing_centre_regional,
-      leftCityDistance: this.state.landing_sites[
-        (currentCount + (this.state.number_sites - 1)) % this.state.number_sites
-      ].distance_km,
-      cityRight: this.state.landing_sites[
-        (currentCount + 1) % this.state.number_sites
-      ].landing_centre_regional,
-      rightCityDistance: this.state.landing_sites[
-        (currentCount + 1) % this.state.number_sites
-      ].distance_km,
-      cityCenter: this.state.landing_sites[currentCount].landing_centre_regional,
-      playingStatus: 'nosound'
-    });
-    this.state.osf_landing_site = this.state.landing_sites[currentCount];
-    source.uri=
-    this.setState({ loading: true });
-    console.log("Loader state: " + this.state.loading);
-    var centerCity = this.state.landing_sites[currentCount].landing_centre;
-    var centerState = this.state.landing_sites[currentCount].state;
-    this.state.cityCenterCount = currentCount;
-    await this.apiCallForForecast(centerCity, centerState);
-    this.setState({ loading: false });
-  }
-
-  async onSwipeRight() {
-    var currentCount = this.state.cityCenterCount;
-    currentCount =
-      (currentCount + (this.state.number_sites - 1)) % this.state.number_sites;
-    this.setState({
-      cityLeft: this.state.landing_sites[
-        (currentCount + (this.state.number_sites - 1)) % this.state.number_sites
-      ].landing_centre_regional,
-      leftCityDistance: this.state.landing_sites[
-        (currentCount + (this.state.number_sites - 1)) % this.state.number_sites
-      ].distance_km,
-      cityRight: this.state.landing_sites[
-        (currentCount + 1) % this.state.number_sites
-      ].landing_centre_regional,
-      rightCityDistance: this.state.landing_sites[
-        (currentCount + 1) % this.state.number_sites
-      ].distance_km,
-      cityCenter: this.state.landing_sites[currentCount].landing_centre_regional,
-      playingStatus: 'nosound'
-    });
-    this.state.osf_landing_site = this.state.landing_sites[currentCount];
-    var centerCity = this.state.landing_sites[currentCount].landing_centre;
-    var centerState = this.state.landing_sites[currentCount].state;
-    this.setState({ loading: true });
-    this.state.cityCenterCount = currentCount;
-    await this.apiCallForForecast(centerCity, centerState);
-    this.setState({ loading: false });
-  }
-
-  onSwipe(gestureName) {
-    const { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT } = swipeDirections;
-    this.setState({ gestureName: gestureName });
-    switch (gestureName) {
-      case SWIPE_UP:
-        console.log("Swiped");
-        break;
-      case SWIPE_DOWN:
-        console.log("Swiped");
-        break;
-      case SWIPE_LEFT:
-        console.log("");
-        break;
-      case SWIPE_RIGHT:
-        console.log("");
-        break;
+    }
+    else if (cond == "Caution" || cond == "High Waves Alert") {
+      return (
+        <Image
+          style={styles.playImg}
+          source={require("../assets/images/play_yellow.png")}
+        />
+      );
+    }
+    else {
+      return (
+        <Image
+          style={styles.playImg}
+          source={require("../assets/images/play_red.png")}
+        />
+      );
     }
   }
-
-  logout(){
+  logout() {
     Alert.alert(
       'Are you Sure ?',
       "You want to logout ?",
@@ -619,7 +413,7 @@ _playAndPause = () => {
             console.log('OK Pressed');
             AsyncStorage.setItem(
               "IS_USER_LOGGED_IN",
-             JSON.stringify(false)
+              JSON.stringify(false)
             );
             this.props.navigation.navigate("register_askLanguage");
           }
@@ -628,50 +422,32 @@ _playAndPause = () => {
       { cancelable: true }
     )
   }
+showAllSites(){
+  this.props.navigation.navigate("fishing_site");
+}
 
   render() {
-    const config = {
-      velocityThreshold: 0.3,
-      directionalOffsetThreshold: 100
-    };
     if (!this.state.isConnected) {
       return <MiniOfflineSign />;
     } else {
       return (
-        <GestureRecognizer
-          onSwipe={(direction, state) => this.onSwipe(direction)}
-          onSwipeLeft={() => this.onSwipeLeft()}
-          onSwipeRight={() => this.onSwipeRight()}
-          config={config}
-          style={{
-            flex: 1,
-            backgroundColor: this.state.backgroundColor
-          }}
-        >
-          {this.completeScreen()}
-        </GestureRecognizer>
+        <View style={styles.container}>
+          {this.headerView()}
+          {this.forecastOverlay()}
+          {this.mainContent()}
+          {this.animateView()}
+        </View>
       );
     }
-  }
-  completeScreen() {
-    return (
-      <View style={styles.container}>
-        {this.headerView()}
-        {this.forcastOverlay()}
-        {this.mainContent()}
-        {this.animateView()}
-      </View>
-    );
   }
 
   setCondition() {
     cond = this.state.fishingState;
-    console.log("State:    " + cond);
     if (cond == "Safe") {
       return (
-        <View style={[styles.boxCondition, { backgroundColor: "#cce9e3" }]}>
+        <View style={[styles.boxCondition]}>
           <Image
-            style={[styles.cautionIcon, { height: 40, width: 40 }]}
+            style={[styles.cautionIcon]}
             source={require("../assets/images/safe.png")}
           />
           {this.textCaution1()}
@@ -679,7 +455,7 @@ _playAndPause = () => {
       );
     } else if (cond == "Caution" || cond == "High Waves Alert") {
       return (
-        <View style={[styles.boxCondition, { backgroundColor: "#fff4cf" }]}>
+        <View style={styles.boxCondition}>
           <Image
             style={styles.cautionIcon}
             source={require("../assets/images/caution_small.png")}
@@ -689,9 +465,9 @@ _playAndPause = () => {
       );
     } else {
       return (
-        <View style={[styles.boxCondition, { backgroundColor: "#fbdada" }]}>
+        <View style={[styles.boxCondition]}>
           <Image
-            style={[styles.cautionIcon, { height: 40, width: 40 }]}
+            style={[styles.cautionIcon]}
             source={require("../assets/images/danger.png")}
           />
           {this.textCaution3()}
@@ -703,89 +479,108 @@ _playAndPause = () => {
     return (
       <View style={styles.header}>
         {this.callFrame()}
-        <TouchableOpacity style={styles.iconMainLogout} onPress={()=> this.logout()}>
-        <Image
-          style={styles.iconMain}
-          source={require("../assets/images/icon_main.png")}
-        />
+        <TouchableOpacity style={styles.iconMainLogout} onPress={() => this.logout()}>
+          <Image
+            style={styles.iconMain}
+            source={require("../assets/images/icon_main.png")}
+          />
         </TouchableOpacity>
-        {this.allCityView()}
+        {this.fishingCenterView()}
       </View>
     );
   }
-  allCityView() {
+  fishingCenterView() {
     return (
       <View style={styles.cityBar}>
-        {this.leftCityFrame()}
-        {this.LeftCityIcon()}
-        <View style={styles.currentCityBox}>
-          <Text adjustsFontSizeToFit style={styles.currentCityText}>
-            {this.state.cityCenter}{" "}
-          </Text>
-        </View>
-        {this.rightCityIcon()}
-        {this.rightCityFrame()}
+        {this.landing_site_view()}
+        {this.change_site()}
       </View>
     );
   }
-  leftCityFrame() {
+  landing_site_view() {
     return (
-      <TouchableOpacity style={styles.cityBoxLeft} onPress={this.onSwipeRight}>
-        <Text style={styles.otherCityText}>{this.state.cityLeft}</Text>
+      <View style={styles.landing_centre_box}>
+        <Text style={styles.landing_city_name}>{this.state.cityCenter}</Text>
         <Text style={styles.txtDirection}>
-          {this.state.leftCityDistance} Km
-        </Text>
-      </TouchableOpacity>
+          Your fishing location
+                </Text>
+      </View>
     );
   }
-  LeftCityIcon() {
+  change_site() {
     return (
-      <TouchableOpacity>
-        <Image
-          style={[styles.cityChangeArrow, { marginRight: 5 }]}
-          source={require("../assets/images/left.png")}
-        />
-      </TouchableOpacity>
-    );
-  }
-  rightCityFrame() {
-    return (
-      <TouchableOpacity style={styles.cityBoxRight}>
-        <Text style={styles.otherCityText}>{this.state.cityRight}</Text>
-        <Text style={styles.txtDirection}>
-          {this.state.rightCityDistance} Km
-        </Text>
-      </TouchableOpacity>
-    );
-  }
-  rightCityIcon() {
-    return (
-      <TouchableOpacity>
-        <Image
-          style={[styles.cityChangeArrow, { marginLeft: 5 }]}
-          source={require("../assets/images/right.png")}
-        />
+      <TouchableOpacity style={styles.site_change} onPress={this.showAllSites}>
+        <Text style={styles.site_changeText}>
+          {this.state.changeSiteTag}
+                </Text>
       </TouchableOpacity>
     );
   }
   callFrame() {
     return (
       <TouchableOpacity style={styles.btnCall} onPress={this.call}>
-        <Image source={require("../assets/images/call.png")} />
+        <Image style={styles.btnCallIcon} source={require("../assets/images/call.png")} />
       </TouchableOpacity>
     );
   }
-  forcastOverlay() {
+  forecastOverlay() {
+    cond = this.state.fishingState;
+    if (cond == "Safe") {
+      return (
+        <LinearGradient
+          colors={['#f2f9f8', '#ffffff']}
+          style={styles.middleBox}>
+          <View style={[styles.overlay, { backgroundColor: '#e5f4f1', borderColor: '#7ec6b8' }]}>
+            <TouchableOpacity style={styles.playPause}
+              onPress={this._playAndPause}
+            >
+              {this.toggle_image()}
+            </TouchableOpacity>
+            {this.togglingTab()}
+            {this.setCondition()}
+          </View>
+        </LinearGradient>
+      );
+    }
+    else if (cond == "Caution" || cond == "High Waves Alert") {
+      return (this.viewCaution());
+    }
+    else {
+      return (this.viewDanger());
+    }
+  }
+  viewCaution() {
     return (
-      <View style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.boxForcast}
-          onPress={this._playAndPause}
-        >
-          {this.toggle_image()}
+      <LinearGradient
+        colors={['#fff9e6', '#ffffff']}
+        style={styles.middleBox}>
+        <View style={styles.overlay}>
+          <TouchableOpacity style={styles.playPause}
+            onPress={this._playAndPause}
+          >
+            {this.toggle_image()}
+          </TouchableOpacity>
           {this.togglingTab()}
-        </TouchableOpacity>
-      </View>
+          {this.setCondition()}
+        </View>
+      </LinearGradient>
+    );
+  }
+  viewDanger() {
+    return (
+      <LinearGradient
+        colors={['#fef6f2', '#ffffff']}
+        style={styles.middleBox}>
+        <View style={[styles.overlay, { backgroundColor: '#fcece5', borderColor: '#f58674' }]}>
+          <TouchableOpacity style={styles.playPause}
+            onPress={this._playAndPause}
+          >
+            {this.toggle_image()}
+          </TouchableOpacity>
+          {this.togglingTab()}
+          {this.setCondition()}
+        </View>
+      </LinearGradient>
     );
   }
   togglingTab() {
@@ -794,9 +589,7 @@ _playAndPause = () => {
   mainContent() {
     return (
       <View style={styles.content}>
-        <View style={styles.flexEmpty} />
         {this.currentDate()}
-        {this.warningStatus()}
         {this.rowCurrent()}
         {this.rowWave()}
         {this.rowWind()}
@@ -808,12 +601,10 @@ _playAndPause = () => {
   currentDate() {
     return (
       <View style={styles.CurrentDateStyle}>
+        <Text style={styles.osf_Text}>Ocean State Forecast</Text>
         <Text style={styles.dateText}>{this.state.date}</Text>
       </View>
     );
-  }
-  warningStatus() {
-    return <View style={styles.flexCondition}>{this.setCondition()}</View>;
   }
   textCaution1() {
     return (
@@ -836,10 +627,8 @@ _playAndPause = () => {
     return (
       <View style={styles.infoBox}>
         {this.imgCurrent()}
-        <Text style={[styles.symbolName, { color: "#0a4a81" }]}>
-          {this.state.currentTag}
-        </Text>
-        <Text style={styles.symbolValue}>{this.state.currentVal}</Text>
+        {this.textCurrent()}
+        {this.valueCurrent()}
         {this.dirCurrent()}
       </View>
     );
@@ -852,6 +641,26 @@ _playAndPause = () => {
       />
     );
   }
+  textCurrent() {
+    return (
+      <View style={styles.name_element}>
+        <Text style={[styles.symbolName, { color: "#0a4a81" }]}>
+          {this.state.currentTag}
+          <Text style={styles.symbolUnit}> (km/hr)   </Text>
+        </Text>
+      </View>
+    );
+  }
+  valueCurrent() {
+    return (
+      <View style={[styles.name_element, { alignItems: 'center' },]}>
+        {this.valueColor(this.state.currentMaxVal)}
+        <Text style={styles.minValue}>
+          /{this.state.currentMinVal}
+        </Text>
+      </View>
+    );
+  }
   dirCurrent() {
     return <Text style={styles.DirectionMain}>{this.state.currentDir}</Text>;
   }
@@ -859,10 +668,8 @@ _playAndPause = () => {
     return (
       <View style={styles.infoBox}>
         {this.imgWave()}
-        <Text style={[styles.symbolName, { color: "#0088fc" }]}>
-          {this.state.waveTag}
-        </Text>
-        <Text style={styles.symbolValue}>{this.state.waveVal}</Text>
+        {this.textWave()}
+        {this.valueWave()}
         {this.dirWave()}
       </View>
     );
@@ -875,6 +682,26 @@ _playAndPause = () => {
       />
     );
   }
+  textWave() {
+    return (
+      <View style={styles.name_element}>
+        <Text style={[styles.symbolName, { color: "#0088fc" }]}>
+          {this.state.waveTag}
+          <Text style={styles.symbolUnit}>  (ft)</Text>
+        </Text>
+      </View>
+    );
+  }
+  valueWave() {
+    return (
+      <View style={[styles.name_element]}>
+        {this.valueColor(this.state.waveMaxVal)}
+        <Text style={styles.minValue}>
+          /{this.state.waveMinVal}
+        </Text>
+      </View>
+    );
+  }
   dirWave() {
     return <Text style={styles.DirectionMain}>{this.state.waveDir}</Text>;
   }
@@ -882,10 +709,8 @@ _playAndPause = () => {
     return (
       <View style={styles.infoBox}>
         {this.imgWind()}
-        <Text style={[styles.symbolName, { color: "#c9bd75" }]}>
-          {this.state.windTag}
-        </Text>
-        <Text style={styles.symbolValue}>{this.state.windVal}</Text>
+        {this.textWind()}
+        {this.valueWind()}
         {this.dirWind()}
       </View>
     );
@@ -898,8 +723,53 @@ _playAndPause = () => {
       />
     );
   }
+  textWind() {
+    return (
+      <View style={styles.name_element}>
+        <Text style={[styles.symbolName, { color: "#c9bd75" }]}>
+          {this.state.windTag}
+          <Text style={styles.symbolUnit}>   (km/hr)  </Text>
+        </Text>
+      </View>
+    );
+  }
+  valueWind() {
+    return (
+      <View style={[styles.name_element]}>
+        {this.valueColor(this.state.windMaxVal)}
+        <Text style={styles.minValue}>
+          /{this.state.windMinVal}
+        </Text>
+      </View>
+    );
+  }
   dirWind() {
     return <Text style={styles.DirectionMain}>{this.state.windDir}</Text>;
+  }
+
+  valueColor(value) {
+    cond = this.state.fishingState;
+    if (cond == "Safe") {
+      return (
+        <Text style={[styles.maxValue,{color:'#039073'}]}>
+          {value}
+        </Text>
+      );
+    }
+    else if(cond == "Caution" || cond == "High Waves Alert"){
+      return (
+        <Text style={[styles.maxValue]}>
+          {value}
+        </Text>
+      );
+    }
+      else{
+        return(
+        <Text style={[styles.maxValue,{color:'#eb1a1a'}]}>
+          {value}
+        </Text>
+      );
+      }
   }
   bottomtab() {
     return (
@@ -911,6 +781,7 @@ _playAndPause = () => {
           }}
         >
           {this.imgSwipeUp()}
+          <Text style={styles.readMore}>READ MORE</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1010,35 +881,53 @@ _playAndPause = () => {
   }
 }
 const styles = StyleSheet.create({
+  header: {
+    backgroundColor: "#ffffff",
+    height: heightPercentageToDP("28.4%"),
+    width: DEVICE_WIDTH,
+  },
   btnCall: {
     position: "absolute",
-    right: 30,
-    top: 40,
-    width: 60,
-    height: 60
+    right: widthPercentageToDP("5.8%"),
+    top: heightPercentageToDP("5.5%"),
+    width: widthPercentageToDP("12.7%"),
+    height: heightPercentageToDP("7.6%"),
+    borderRadius: heightPercentageToDP("6.6%"),
+
+  },
+  btnCallIcon: {
+    width: widthPercentageToDP("12.7%"),
+    height: heightPercentageToDP("7.6%"),
+
   },
   iconMainLogout: {
-    width: 60,
-    height: 60,
-    marginLeft: 30,
-    marginTop: 35
+    position: "absolute",
+    width: widthPercentageToDP("11.7%"),
+    height: heightPercentageToDP("6.6%"),
+    left: widthPercentageToDP("5.8%"),
+    top: heightPercentageToDP("5.5%"),
   },
   iconMain: {
-    width: 60,
-    height: 60,
+    width: widthPercentageToDP("11.7%"),
+    height: heightPercentageToDP("6%"),
   },
   cityBar: {
     flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
+    marginTop: heightPercentageToDP("16.1%"),
+    alignSelf: 'center',
+    width: widthPercentageToDP("92.2%"),
+    height: heightPercentageToDP("10.1%"),
+    marginBottom: heightPercentageToDP("2.2%"),
+    borderRadius: 10.7,
+    backgroundColor: '#f0f0f0'
   },
-  cityBoxLeft: {
+  landing_centre_box: {
     flex: 1,
-    height: 50,
-    marginLeft: 5,
+
+    width: '50%',
+    marginLeft: widthPercentageToDP('6.3%'),
     justifyContent: "center",
-    alignItems: "center"
   },
   cityBoxRight: {
     flex: 1,
@@ -1046,13 +935,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center"
   },
-  otherCityText: {
+  landing_city_name: {
     color: "#000000",
-    //fontWeight: 'bold',
-    fontSize: 16,
-    textAlign: "center"
+    fontWeight: 'bold',
+    fontSize: 20,
+    width: '70%',
+    //textAlign: "center"
     //justifyContent: 'center',
     //alignSelf:'flex-s'
+  },
+  playPause: {
+    justifyContent: 'center',
+    marginLeft: 10,
   },
   currentCityBox: {
     backgroundColor: "#cce9e3",
@@ -1065,8 +959,9 @@ const styles = StyleSheet.create({
     marginBottom: 20
   },
   txtDirection: {
-    textAlign: "center",
-    fontSize: 14
+    fontSize: 16,
+    width: '70%',
+    color: '#999999',
   },
   currentCityText: {
     color: "#039073",
@@ -1076,62 +971,62 @@ const styles = StyleSheet.create({
     width: 140,
     textAlign: "center"
   },
-  cityChangeArrow: {
-    width: 10,
+  site_change: {
+    width: widthPercentageToDP('20%'),
     height: 40,
-    marginBottom: 20
+    marginRight: widthPercentageToDP('6.1%'),
+    fontSize: 8,
+    justifyContent: 'center',
+    alignSelf: 'center',
+    color: '#999999'
+  },
+  site_changeText: {
+    fontSize: 12.5,
+    justifyContent: 'center',
+    color: '#999999',
+    textAlign:'right',
   },
   flexEmpty: {
     width: DEVICE_WIDTH,
     height: 1
   },
-  flexCondition: {
-    width: DEVICE_WIDTH,
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center"
-  },
 
   boxCondition: {
-    backgroundColor: "#fff4cf",
     alignSelf: "center",
     justifyContent: "center",
-    padding: 20,
-    borderRadius: 50,
     alignItems: "center",
-    width: "50%",
-    height: 100,
+    textAlign: 'right',
+    width: "40%",
+    height: heightPercentageToDP('8%'),
     flex: 1,
     flexDirection: "row"
   },
   textCondition: {
     color: "#f49521",
     fontWeight: "bold",
-    fontSize: 20,
+    fontSize: 16,
     justifyContent: "center",
-    width: 120,
-    paddingLeft: 20,
-    alignSelf: "center"
+    width: 80,
+    //alignSelf: "center",
+    textAlign: 'right',
+
   },
   forecastFlex: {
     flex: 1,
     marginLeft: 20,
-    backgroundColor: "#ffffffff"
+    justifyContent: 'center',
+
   },
   boxForcast: {
     backgroundColor: "#fff",
+
     alignItems: "center",
-    padding: 20,
-    borderRadius: 50,
-    borderColor: "#f4f4f4",
-    borderWidth: 3,
     flex: 1,
     flexDirection: "row",
-    padding: 20
   },
   cautionIcon: {
-    width: 20,
-    height: 20
+    width: 30,
+    height: 30
   },
   playImg: {
     width: 16,
@@ -1147,19 +1042,29 @@ const styles = StyleSheet.create({
   textForcast: {
     color: "#000000",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 16,
     width: 150
   },
-  overlay: {
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    position: "relative",
+  middleBox: {
+    width: DEVICE_WIDTH,
+    height: heightPercentageToDP('45.8%'),
+    backgroundColor: 'red',
     zIndex: 1,
-    marginTop: -40,
-    marginLeft: 20,
-    marginRight: 20,
-    width: "50%",
-    height: 60
+  },
+
+  overlay: {
+    flex: .25,
+    flexDirection: 'row',
+    borderRadius: 15,
+    borderColor: '#facb83',
+    backgroundColor: '#fff4cf',
+    borderWidth: 1.3,
+    marginTop: heightPercentageToDP('4.1%'),
+    width: widthPercentageToDP('83.5%'),
+    alignSelf: 'center',
+    height: heightPercentageToDP('9.6%'),
+    justifyContent: 'center',
+    elevation:5,
   },
   CurrentDateStyle: {
     alignSelf: "flex-start",
@@ -1168,8 +1073,34 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontWeight: "bold",
+    fontSize: 10,
+    color: "#999999"
+  },
+  osf_Text: {
+    fontWeight: "bold",
+    fontSize: 16,
+    width: widthPercentageToDP('50%'),
+    marginTop: 10
+  },
+  name_element: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+
+  },
+  maxValue: {
+    fontSize: 26,
+    color: '#f49420',
+    textAlign: 'right',
+    width: widthPercentageToDP('15%'),
+    //marginLeft: widthPercentageToDP('4%'),
+  },
+  minValue: {
     fontSize: 18,
-    color: "#5D4E4F"
+    color: '#999999',
+    textAlign: 'center',
+    marginTop: 3,
+    textAlignVertical: 'bottom',
   },
   container: {
     backgroundColor: "#fff",
@@ -1178,35 +1109,42 @@ const styles = StyleSheet.create({
     width: DEVICE_WIDTH,
     height: DEVICE_HEIGHT
   },
-  header: {
-    backgroundColor: "#f2f2f2",
-    height: "40%",
-    paddingTop: 10,
-    width: DEVICE_WIDTH
-  },
   headerText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "600"
   },
   content: {
-    width: DEVICE_WIDTH,
+    width: widthPercentageToDP('92.2%'),
+    position: "absolute",
+    alignSelf: 'center',
+    height: heightPercentageToDP("55.5%"),
+    top: heightPercentageToDP('46.6%'),
     backgroundColor: "#fff",
+    zIndex: 2,
     flex: 1,
     alignItems: "center",
+    borderRadius: 10,
+    borderColor: '#f2f2f2',
+    borderWidth: 1,
     justifyContent: "space-between"
   },
   symbolIcons: {
     width: 40,
     height: 40,
+    borderRadius: 5,
     marginTop: 4
   },
   symbolName: {
     textAlignVertical: "center",
     fontWeight: "bold",
-    fontSize: 16,
-    width: 60,
-    marginLeft: 5
+    fontSize: 18,
+    marginRight: 3,
+    marginLeft: 10,
+  },
+  symbolUnit: {
+    fontSize: 14,
+    color: '#999999'
   },
   symbolValue: {
     textAlignVertical: "center",
@@ -1222,19 +1160,18 @@ const styles = StyleSheet.create({
     color: "#7f7f7f",
     fontWeight: "bold",
     fontSize: 16,
-    width: 50,
-    marginLeft: 10
+    borderRadius: 10,
+    width: widthPercentageToDP('15%'),
+    backgroundColor: '#ebebeb',
+    textAlign: 'center',
   },
   infoBox: {
     height: 50,
     backgroundColor: "#fff",
-    width: "90%",
-    borderRadius: 10,
-    borderColor: "#f2f2f2",
-    borderWidth: 1,
+    width: "95%",
     flexDirection: "row",
-    paddingLeft: 7,
-    paddingRight: 7,
+    paddingLeft: 3,
+    paddingRight: 3,
     alignItems: "center",
     justifyContent: "space-between"
   },
@@ -1247,7 +1184,7 @@ const styles = StyleSheet.create({
   },
   iconSwipeUp: {
     width: 50,
-    height: 50,
+    height: 20,
     alignSelf: "center"
   },
   iconSwipeDown: {
@@ -1255,6 +1192,11 @@ const styles = StyleSheet.create({
     height: 50,
     alignSelf: "center",
     marginBottom: 10
+  },
+  readMore: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   footer: {
     height: 70,

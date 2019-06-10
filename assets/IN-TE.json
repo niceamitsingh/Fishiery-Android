@@ -13,9 +13,9 @@
     "Forecast_State_Danger": "ప్రమాదం",
     "Forecast_Audio_playing": "ఆడియో వినండి",
     "Forecast_State_Safe": "సురక్సితమైన",
-    "Forecast_Component_Current": "వడి",
-    "Forecast_Component_Wave": "అలలు",
-    "Forecast_Component_Wind": "గాలి",
+    "Forecast_Component_Current": "నీటి ప్రవాహం",
+    "Forecast_Component_Wave": "తరంగాలు ఎత్తు",
+    "Forecast_Component_Wind": "గాలి వేగం",
     "Forecast_User_Review_Answer_YES": "అవును",
     "Forecast_User_Review_Answer_NO": "కాదు",
     "Forecast_User_Review_Title": "ఈ సమాచారం మీకు ఉపయోగగకరము గా ఉందా?",
@@ -53,5 +53,6 @@
     "Profession_Fishing": "చేపల వేట",
     "Profession_Livestocks": "పశు సంపద",
     "Profession_Other": "యితరములు",
-    "Register_Name": "నీ పేరు ఏమిటి ?"
+    "Register_Name": "నీ పేరు ఏమిటి ?",
+    "Forecast_Tap_To_Change": "మార్పు"
 }

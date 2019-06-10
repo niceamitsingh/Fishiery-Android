@@ -8,10 +8,10 @@
     "Forecast_Screen_Directions_South": "South",
     "Forecast_Screen_Directions_East": "East",
     "Forecast_Screen_Directions_West": "West",
-    "Forecast_OSF_Title": "Forecast",
-    "Forecast_State_Caution": "Caution",
+    "Forecast_OSF_Title": "Today's Forecast",
+    "Forecast_State_Caution": "CAUTION",
     "Forecast_Audio_playing": "Playing",
-    "Forecast_State_Safe": "Safe",
+    "Forecast_State_Safe": "SAFE",
     "Forecast_Component_Current": "Current",
     "Forecast_Component_Wave": "Wave",
     "Forecast_Component_Wind": "Wind",
@@ -52,5 +52,6 @@
     "Profession_Fishing": "Fishing",
     "Profession_Livestocks": "Livestock",
     "Profession_Other": "Other",
-    "Register_Name": "Whats your name ?"
+    "Register_Name": "Whats your name ?",
+    "Forecast_Tap_To_Change": "Tap to change"
 }
