@@ -53,6 +53,10 @@ class LoginPage extends React.Component {
       app_name: '',
       hi_there: '',
       ask_phNo: '',
+      register_new:'',
+      register_text:'',
+      register_yes:'',
+      register_no:'',
     }
   }
 
@@ -62,9 +66,17 @@ class LoginPage extends React.Component {
     NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
     var labelText = await getObjectForKey('Login_Screen_Greeting');
     var noText = await getObjectForKey('Login_Screen_Question');
+    var register_new_label = await getObjectForKey('Register_New_text');
+    var register_text_label = await getObjectForKey('Register_text');
+    var yesLabel = await getObjectForKey('Forecast_User_Review_Answer_YES');
+    var noLabel = await getObjectForKey('Forecast_User_Review_Answer_NO');
     this.setState({
       hi_there: labelText,
       ask_phNo: noText,
+      register_new: register_new_label,
+      register_text: register_text_label,
+      register_yes: yesLabel,
+      register_no: noLabel,
     });
     this.setState({ loading: false });
     try {
@@ -125,12 +137,12 @@ class LoginPage extends React.Component {
 
       this.setState({ loading: false });
       Alert.alert(
-        'New to Machli ?',
-        "Your number dosen't seem to be registered with us. Do you want to Register ?",
+        this.state.register_new,
+        this.state.register_text,
         [
-          { text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel' },
+          { text: this.state.register_no, onPress: () => console.log('Cancel Pressed'), style: 'cancel' },
           {
-            text: 'Yes', onPress: () => {
+            text: this.state.register_yes, onPress: () => {
               console.log('OK Pressed');
               this.props.navigation.navigate("register_askName");
             }

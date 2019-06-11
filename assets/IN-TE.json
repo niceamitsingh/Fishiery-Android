@@ -54,5 +54,10 @@
     "Profession_Livestocks": "పశు సంపద",
     "Profession_Other": "యితరములు",
     "Register_Name": "నీ పేరు ఏమిటి ?",
+<<<<<<< HEAD
     "Forecast_Tap_To_Change": "మార్పు"
+=======
+    "Register_New_text": "New to machli ?",
+    "Register_text":"మీరు నమోదు చేయాలనుకుంటున్నారా ?"
+>>>>>>> de5f23a49b5c437ba217580ace3859ab3eba1931
 }

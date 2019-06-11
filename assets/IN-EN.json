@@ -53,5 +53,10 @@
     "Profession_Livestocks": "Livestock",
     "Profession_Other": "Other",
     "Register_Name": "Whats your name ?",
+<<<<<<< HEAD
     "Forecast_Tap_To_Change": "Tap to change"
+=======
+    "Register_New_text": "New to machli ?",
+    "Register_text":"Your number dosen't seem to be registered with us. Do you want to register ?"
+>>>>>>> de5f23a49b5c437ba217580ace3859ab3eba1931
 }

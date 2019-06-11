@@ -47,7 +47,7 @@ export default class ask_name extends React.Component {
 
     async componentDidMount() {
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
-        //var labelText = await getObjectForKey('Login_Screen_Greeting');
+        var labelText = await getObjectForKey('Register_Name');
         //var noText = await getObjectForKey('Login_Screen_Question');
         const { navigation } = this.props;
         var lang='';
@@ -63,7 +63,7 @@ export default class ask_name extends React.Component {
         this.setState({
             user_Language:lang,
             user_Number:num,
-            ask_name: 'Whats your name?',
+            ask_name: labelText,
         });
         //console.log("Label"+ JSON.stringify(sText));
     }
