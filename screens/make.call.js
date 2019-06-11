@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TextInput, View, Button, Image, Dimensions, ImageBackground, TouchableOpacity, PermissionsAndroid, NetInfo, Alert, AsyncStorage, FlatList, Platform } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Button, Image, Dimensions, ImageBackground, TouchableOpacity, PermissionsAndroid, NetInfo, Alert, AsyncStorage, FlatList, Platform,BackHandler } from 'react-native';
 import {
     widthPercentageToDP,
     heightPercentageToDP,
@@ -36,13 +36,20 @@ export default class callRFS extends React.Component {
     }
 
     async componentDidMount() {
+        BackHandler.addEventListener('hardwareBackPress', this.onBackPress);
         NetInfo.isConnected.addEventListener('connectionChange', this.handleConnectivityChange);
         //var labelText = await getObjectForKey('Login_Screen_Greeting');
     }
 
     async componentWillUnmount() {
+        BackHandler.removeEventListener('hardwareBackPress', this.onBackPress);
         NetInfo.isConnected.removeEventListener('connectionChange', this.handleConnectivityChange);
     }
+
+    onBackPress = () => {
+        this.props.navigation.navigate('page_forecast');
+        return true;
+      }
 
     handleConnectivityChange = isConnected => {
         if (isConnected) {

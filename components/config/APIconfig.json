@@ -14,7 +14,7 @@
         "method": "POST"
     },
     "Get_OSF":{
-        "urlPath":"/engine/get_osf/",
+        "urlPath":"/query/get/response/",
         "method":"POST"
     },
     "Get_Landing_Site":{

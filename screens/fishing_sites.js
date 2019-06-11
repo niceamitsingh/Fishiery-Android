@@ -10,7 +10,8 @@ import {
   Alert,
   AsyncStorage,
   FlatList,
-  Platform
+  Platform,
+  BackHandler
 } from "react-native";
 import {
   widthPercentageToDP,
@@ -110,8 +111,10 @@ export default class main extends React.Component {
     }
     console.log(lat + "    " + lon);
     var coordinates = {
-      latitude: lat,
-      longitude: lon
+      //latitude: lat,
+      //longitude: lon
+      latitude: 17.3850,
+      longitude: 78.4867
     };
     var dataSource = await request(
     //  "http://104.211.204.132/osf/engine/get_nearest_landing_centres/",
@@ -143,27 +146,32 @@ export default class main extends React.Component {
   }
 
   btnContinueTapped() {
+    var site = this.state.selected_landing_site[0].landing_centre;
+    var state = this.state.selected_landing_site[0].state;
+    var city = this.state.selected_landing_site[0].district;
+    console.log('City Name: ' +site);
     this.setState({ loading: true });
-    console.log("Selected Site: " + JSON.stringify(this.state.landing_sites));
-    console.log("Selected State : " + selectedState);
     AsyncStorage.setItem(
       "USERSELECTEDSITE",
-      JSON.stringify(this.state.landing_sites)
+      site
     );
-    console.log("Landing Sites: " + this.state.selected_landing_site);
-    console.log(
-      "Landing Sites Count: " + this.state.selected_landing_site.length
-    );
+    AsyncStorage.setItem(
+      "USERSELECTEDSTATE",
+      state
+    );  
+    AsyncStorage.setItem(
+      "USERSELECTEDCITY",
+      city
+    );  
+
+    console.log("Landing Sites: " + JSON.stringify(this.state.selected_landing_site[0]));
     const { navigate } = this.props.navigation;
     this.setState({ loading: false });
-    navigate("page_forecast", {
-      Landing_Sites: this.state.dataSource,
-      Selected_Site: this.state.selected_landing_site,
-      Selected_State: selectedState
-    });
+    navigate("page_forecast");
   }
 
   async componentDidMount() {
+    BackHandler.addEventListener('hardwareBackPress', this.onBackPress);
     NetInfo.isConnected.addEventListener(
       "connectionChange",
       this.handleConnectivityChange
@@ -175,10 +183,16 @@ export default class main extends React.Component {
   }
 
   componentWillUnmount() {
+    BackHandler.removeEventListener('hardwareBackPress', this.onBackPress);
     NetInfo.isConnected.removeEventListener(
       "connectionChange",
       this.handleConnectivityChange
     );
+  }
+
+  onBackPress = () => {
+    BackHandler.exitApp();
+    return true;
   }
 
   handleConnectivityChange = isConnected => {

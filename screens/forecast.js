@@ -10,7 +10,8 @@ import {
   Animated,
   Alert,
   NetInfo,
-  AsyncStorage
+  AsyncStorage,
+  BackHandler
 } from "react-native";
 import { Audio } from "expo";
 import Loader from "../components/util/loader";
@@ -21,7 +22,7 @@ import {
   widthPercentageToDP,
   heightPercentageToDP,
 } from 'react-native-responsive-screen';
-import { LinearGradient } from 'expo'
+import { LinearGradient } from 'expo';
 
 var source = {
   uri: "",
@@ -30,6 +31,9 @@ var source = {
 const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = Dimensions.get("window");
 const SUB_VIEW = 0.67 * DEVICE_HEIGHT;
 
+//for the animated text view !
+var isHidden = true;
+var toValue;
 
 function MiniOfflineSign() {
   Alert.alert("Please check your internet connection !");
@@ -47,8 +51,6 @@ function MiniOfflineSign() {
     </View>
   );
 }
-var isHidden = true;
-var toValue;
 
 export default class forecast extends React.Component {
   constructor(props) {
@@ -60,17 +62,17 @@ export default class forecast extends React.Component {
       isConnected: true,
       loading: false,
       isSafe: false,
-      currentMinVal: "4",
-      currentMaxVal: "12",
-      currentDir: "NNW",
-      waveMinVal: "4",
-      waveMaxVal: "9",
-      waveDir: "NN",
-      windMinVal: "31",
-      windMaxVal: "50",
-      windDir: "NNE",
-      textInfo: "something something",
-      date: "14th May, 2019",
+      currentMinVal: "-",
+      currentMaxVal: "-",
+      currentDir: "-",
+      waveMinVal: "-",
+      waveMaxVal: "-",
+      waveDir: "-",
+      windMinVal: "-",
+      windMaxVal: "-",
+      windDir: "-",
+      textInfo: "No data available.",
+      date: "-",
       selected_site: [],
       selected_state: "",
       forecastTag: "",
@@ -86,11 +88,15 @@ export default class forecast extends React.Component {
       fishingStateFlag: "",
       osf_landing_site: [],
       feedbackTag: '',
-      changeSiteTag:'',
-      checkValueColor: ''
+      changeSiteTag: '',
+      checkValueColor: '',
+      soundUrl: '',
     };
   }
 
+  componentWillReceiveProps(nextProp) {
+    console.log('componentWillReceiveProps called.', nextProp);
+  }
   async componentWillMount() {
     console.log("Reached forecast");
     const { navigation } = this.props;
@@ -98,42 +104,6 @@ export default class forecast extends React.Component {
     var lat;
     var lon;
     this.setState({ loading: true });
-    try {
-      lat = await AsyncStorage.getItem("DEFAULT_LAT");
-      lon = await AsyncStorage.getItem("DEFAULT_LONG");
-    } catch (error) {
-      // Error retrieving data
-    }
-    console.log(lat + "   " + lon);
-    var coordinates = {
-      //latitude: lat,
-      //longitude: lon
-      latitude: 17.3850,
-      longitude: 78.4867
-    };
-    var dataSource = await request(
-      APIConfig.OSF_Base_API + APIConfig.Get_Landing_Site.urlPath,
-      coordinates
-    );
-    console.log("Datasource: " + dataSource);
-    if (dataSource == "timeout of 60000ms exceeded") {
-      Alert.alert("Please try after some time");
-    } else {
-      //TODO: Need to load the previous selected site --- not nearest
-      selected_Landing_Site = dataSource[0];
-    }
-    var received_site = navigation.getParam("Selected_Site");
-    if (received_site != null) {
-      selected_Landing_Site = received_site;
-    }
-    console.log("selected_Landing_Site: " + selected_Landing_Site);
-    this.setState({
-      selected_site: selected_Landing_Site,
-    });
-    await this.apiCallForForecast(selected_Landing_Site.landing_centre, selected_Landing_Site.state);
-    this.setState({ loading: true });
-
-    //await this.apiCallForForecast(this.state.selected_site.landing_centre, this.state.selected_state);
     var labelForecast = await getObjectForKey("Forecast_OSF_Title");
     var labelCaution = await getObjectForKey("Forecast_State_Caution");
     var labelPlaying = await getObjectForKey("Forecast_Audio_playing");
@@ -160,11 +130,29 @@ export default class forecast extends React.Component {
       feedbackTag: labelFeedback,
       changeSiteTag: LabelChangeSite,
     });
-    this.setState({ loading: false });
+    var site;
+    var state;
+    var city;
+    try {
+      site = await AsyncStorage.getItem('USERSELECTEDSITE');
+      state = await AsyncStorage.getItem('USERSELECTEDSTATE');
+      city = await AsyncStorage.getItem('USERSELECTEDCITY')
+    } catch (error) {
+      // Error retrieving data
+    }
+    //console.log(lat + "   " + lon);
+    console.log('Site value: ' + site);
+    console.log('State value: ' + state);
+    var coordinates = {
+      latitude: 17.3850,
+      longitude: 78.4867
+    };
+    await this.apiCallForForecast(site, state, city);
   }
 
-  async apiCallForForecast(currentCity, currentState) {
+  async apiCallForForecast(currentSite, currentState, currentCity) {
     var lang;
+    var site;
     try {
       lang = await AsyncStorage.getItem("DEFAULT_LANGUAGE");
     } catch (error) {
@@ -173,15 +161,18 @@ export default class forecast extends React.Component {
     this.setState({ loading: false });
     console.log("Language is: " + lang);
     console.log("Enquired city:" + currentCity);
+    console.log("Enquired site:" + currentSite);
     console.log("Enquired state:" + currentState);
     var data = {
-      fishing_region: currentState,
-      landing_centre: currentCity,
-      language: lang
-    };
+      "user_id": "5cf139a5f8218a5322a41f57",
+      "language": lang,
+      "location": { "state": currentState, "district": currentCity, "landing_centre": currentSite },
+      "template_name": "ocean_state_forecast_template",
+      "selected_keywords": []
+    }
     console.log("Request Body: " + JSON.stringify(data));
     response = await request(
-      APIConfig.OSF_Base_API + APIConfig.Get_OSF.urlPath,
+      APIConfig.Base_URL + APIConfig.Get_OSF.urlPath,
       data
     );
     console.log("Data: " + JSON.stringify(response));
@@ -199,22 +190,45 @@ export default class forecast extends React.Component {
     this.state.fishingState = cond;
     this.state.textInfo = response.text;
     this.state.date = response.data[0].date;
+    this.state.soundUrl = response.audio;
+    this.state.playingStatus = 'nosound';
+    this.state.cityCenter = response.data[0].landing_centre_regional;
     AsyncStorage.setItem("DEFAULT_FORECAST_STATE", cond);
     this.setState({ loading: false });
   }
 
   async componentDidMount() {
+    BackHandler.addEventListener('hardwareBackPress', this.onBackPress);
     NetInfo.isConnected.addEventListener(
       "connectionChange",
       this.handleConnectivityChange
     );
+    this.props.navigation.addListener('willFocus', (playload) => {
+      console.log(playload);
+      this.state.loading=true;
+      this.state.playingStatus='nosound';
+      this.soundUrl = '';
+      this.componentWillMount();
+    });
   }
   componentWillUnmount() {
+    BackHandler.removeEventListener('hardwareBackPress', this.onBackPress);
     NetInfo.isConnected.removeEventListener(
       "connectionChange",
       this.handleConnectivityChange
     );
   }
+   onBackPress = () => {
+    this.setState({
+      playingStatus: 'donepause',
+      isPlaying: false,
+    });
+    console.log('pausing...');
+    this.sound.pauseAsync();
+    this.props.navigation.navigate('fishing_site');
+    return true;
+  }
+
 
   alert_feedback = feedback_point => {
     Alert.alert(this.state.feedbackTag);
@@ -265,12 +279,19 @@ export default class forecast extends React.Component {
   }
 
   call = () => {
+    this.setState({
+      playingStatus: 'donepause',
+      isPlaying: false,
+    });
+    console.log('pausing...');
+    this.sound.pauseAsync();
     this.props.navigation.navigate("call_rfs");
   };
 
 
   async _playRecording() {
-    source.uri = this.state.selected_site["audio"];
+    source.uri = this.state.soundUrl;
+    console.log('Audio URl: ' + source.uri);
     if (source.uri === "") {
       this.setState({ loading: false });
       Alert.alert("Audio is not available.");
@@ -347,9 +368,6 @@ export default class forecast extends React.Component {
     }
   }
 
-
-
-
   toggle_forecast = () => {
     return this.state.isPlaying ? (
       <Text style={styles.textPlaying}>{this.state.playingTag}..</Text>
@@ -422,9 +440,9 @@ export default class forecast extends React.Component {
       { cancelable: true }
     )
   }
-showAllSites(){
-  this.props.navigation.navigate("fishing_site");
-}
+  showAllSites = () => {
+    this.props.navigation.navigate("fishing_site");
+  }
 
   render() {
     if (!this.state.isConnected) {
@@ -512,7 +530,7 @@ showAllSites(){
       <TouchableOpacity style={styles.site_change} onPress={this.showAllSites}>
         <Text style={styles.site_changeText}>
           {this.state.changeSiteTag}
-                </Text>
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -532,6 +550,7 @@ showAllSites(){
           style={styles.middleBox}>
           <View style={[styles.overlay, { backgroundColor: '#e5f4f1', borderColor: '#7ec6b8' }]}>
             <TouchableOpacity style={styles.playPause}
+              disabled = {this.state.loading}
               onPress={this._playAndPause}
             >
               {this.toggle_image()}
@@ -587,7 +606,14 @@ showAllSites(){
     return <View style={styles.forecastFlex}>{this.toggle_forecast()}</View>;
   }
   mainContent() {
-    return (
+    return this.state.loading ? (
+      <View style={[styles.content,{justifyContent:'center'}]}>
+        <Image
+        style={styles.loaderIcon}
+        source={require("../assets/images/loading.png")}
+      />
+      </View>
+    ) : (
       <View style={styles.content}>
         {this.currentDate()}
         {this.rowCurrent()}
@@ -751,25 +777,25 @@ showAllSites(){
     cond = this.state.fishingState;
     if (cond == "Safe") {
       return (
-        <Text style={[styles.maxValue,{color:'#039073'}]}>
+        <Text style={[styles.maxValue, { color: '#039073' }]}>
           {value}
         </Text>
       );
     }
-    else if(cond == "Caution" || cond == "High Waves Alert"){
+    else if (cond == "Caution" || cond == "High Waves Alert") {
       return (
         <Text style={[styles.maxValue]}>
           {value}
         </Text>
       );
     }
-      else{
-        return(
-        <Text style={[styles.maxValue,{color:'#eb1a1a'}]}>
+    else {
+      return (
+        <Text style={[styles.maxValue, { color: '#eb1a1a' }]}>
           {value}
         </Text>
       );
-      }
+    }
   }
   bottomtab() {
     return (
@@ -947,6 +973,8 @@ const styles = StyleSheet.create({
   playPause: {
     justifyContent: 'center',
     marginLeft: 10,
+    alignItems: 'center',
+    width:50,
   },
   currentCityBox: {
     backgroundColor: "#cce9e3",
@@ -984,7 +1012,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     justifyContent: 'center',
     color: '#999999',
-    textAlign:'right',
+    textAlign: 'right',
   },
   flexEmpty: {
     width: DEVICE_WIDTH,
@@ -1013,7 +1041,7 @@ const styles = StyleSheet.create({
   },
   forecastFlex: {
     flex: 1,
-    marginLeft: 20,
+    marginLeft: 5,
     justifyContent: 'center',
 
   },
@@ -1048,7 +1076,6 @@ const styles = StyleSheet.create({
   middleBox: {
     width: DEVICE_WIDTH,
     height: heightPercentageToDP('45.8%'),
-    backgroundColor: 'red',
     zIndex: 1,
   },
 
@@ -1064,7 +1091,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     height: heightPercentageToDP('9.6%'),
     justifyContent: 'center',
-    elevation:5,
+    elevation: 5,
   },
   CurrentDateStyle: {
     alignSelf: "flex-start",
@@ -1134,6 +1161,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 5,
     marginTop: 4
+  },
+  loaderIcon: {
+    width: 80,
+    height: 80,
   },
   symbolName: {
     textAlignVertical: "center",
